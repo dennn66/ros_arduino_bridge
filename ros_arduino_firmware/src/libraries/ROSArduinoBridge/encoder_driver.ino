@@ -30,11 +30,11 @@
 #elif defined TINYQED
   /* Tiny QED Encoder Counter - https://github.com/renbotics/TQED */
   #include <Wire.h>
-  #include <TQED2.h>
+  #include <TQED.h>
 
   /* Create the encoder counter objects */
-  TQED2 qedLeft(0x38);     // Change the I2C address as needed
-  TQED2 qedRight(0x36);    // Change the I2C address as needed
+  TQED qedLeft(0x38);     // Change the I2C address as needed
+  TQED qedRight(0x36);    // Change the I2C address as needed
 
   /* Wrap the encoder reading function */
   long readEncoder(int i) {
@@ -44,8 +44,13 @@
 
   /* Wrap the encoder reset function */
   void resetEncoder(int i) {
-    if (i == LEFT) return qedLeft.resetCount();
-    else return qedRight.resetCount();
+    if (i == LEFT){
+      qedLeft.resetCount();
+      return;
+    } else { 
+      qedRight.resetCount();
+      return;
+    }
   }
 #else
   #error A encoder driver must be selected!
