@@ -57,7 +57,10 @@
    //#define POLOLU_MC33926
 
    /* The RoboGaia encoder shield */
-   #define ROBOGAIA
+   //#define ROBOGAIA
+
+   /* TinyQED encoder counters */
+   #define TINYQED
 #endif
 
 //#define USE_SERVOS  // Enable use of PWM servos as defined in servos.h
