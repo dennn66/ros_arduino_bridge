@@ -21,7 +21,8 @@
 
 import roslib; roslib.load_manifest('ros_arduino_python')
 import rospy
-from sensor_msgs.msg import Range
+from geometry_msgs.msg import Point32
+from sensor_msgs.msg import Range, PointCloud
 from ros_arduino_msgs.msg import *
 
 LOW = 0
@@ -37,6 +38,7 @@ class MessageType:
     FLOAT = 3
     INT = 4
     BOOL = 5
+    POINTCLOUD = 6
     
 class Sensor(object):
     def __init__(self, controller, name, pin, rate, frame_id="/base_link", direction="input", **kwargs):
@@ -69,6 +71,19 @@ class Sensor(object):
             # For range sensors, assign the value to the range message field
             if self.message_type == MessageType.RANGE:
                 self.msg.range = self.value
+           ###########
+            elif self.message_type == MessageType.POINTCLOUD:  
+                #one sensor has a width of 30 degrees; i.e. formula for width of beam is 30/360 * 2*pi*distance ~= 0.6*distance         
+                self.msg.points[0].x = self.value + 0.13 #UGLY HACK, replace this be decent tf transform!!
+	        self.msg.points[0].y = -self.value*0.3
+	        self.msg.points[0].z = 0.05  #5cm, put this in a config file later
+                self.msg.points[1].x = self.value + 0.13 #UGLY HACK, replace this be decent tf transform!!
+	        self.msg.points[1].y = 0
+	        self.msg.points[1].z = 0.05  #5cm, put this in a config file later
+                self.msg.points[2].x = self.value + 0.13 #UGLY HACK, replace this be decent tf transform!!
+	        self.msg.points[2].y = self.value*0.3
+	        self.msg.points[2].z = 0.05  #5cm, put this in a config file later
+            #######
             else:
                 self.msg.value = self.value
 
@@ -132,8 +147,24 @@ class DigitalSensor(Sensor):
         # Alternate HIGH/LOW when writing at a fixed rate
         self.value = not self.value
         return self.controller.digital_write(self.pin, self.value)
-    
-    
+
+##############
+class PointCloudRangeSensor(Sensor):
+    def __init__(self, *args, **kwargs):
+        super(PointCloudRangeSensor, self).__init__(*args, **kwargs)
+        
+        self.message_type = MessageType.POINTCLOUD
+        
+        self.msg = PointCloud()
+        self.msg.header.frame_id = self.frame_id
+        #replace single sonar reading by three points
+        self.msg.points = [Point32(), Point32(), Point32()]
+        self.pub = rospy.Publisher("~sensor/" + self.name, PointCloud)
+        
+    def read_value(self):
+        self.msg.header.stamp = rospy.Time.now()
+############
+
 class RangeSensor(Sensor):
     def __init__(self, *args, **kwargs):
         super(RangeSensor, self).__init__(*args, **kwargs)
@@ -179,7 +210,22 @@ class Ping(SonarSensor):
         
         return distance
     
+###########
+class PointCloudPing(PointCloudRangeSensor):
+    def __init__(self,*args, **kwargs):
+        super(PointCloudPing, self).__init__(*args, **kwargs)
+     
+    def read_value(self):
+        # The Arduino Ping code returns the distance in centimeters
+        cm = self.controller.ping(self.pin)
         
+        # Convert it to meters for ROS
+        distance = cm / 100.0
+
+	return distance
+
+###########
+     
 class GP2D12(IRSensor):
     def __init__(self, *args, **kwargs):
         super(GP2D12, self).__init__(*args, **kwargs)
