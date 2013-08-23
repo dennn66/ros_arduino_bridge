@@ -113,12 +113,11 @@ void updatePID() {
   /* If we're not moving there is nothing more to do */
   if (!moving){
     /*
-    * Reset PIDs once, to prevent startup spikes,
+    * Reset PIDs, to prevent startup spikes,
     * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/
-    * PrevInput is considered a good proxy to detect
-    * whether reset has already happened
+    * Most importantly, keep Encoder and PrevEnc synced; use that as criteria whether we need reset
     */
-    if (leftPID.PrevInput != 0 || rightPID.PrevInput != 0) resetPID();
+    if (leftPID.PrevEnc != leftPID.Encoder || rightPID.PrevEnc != rightPID.Encoder) resetPID();
     return;
   }
 
