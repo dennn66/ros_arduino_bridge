@@ -104,6 +104,19 @@ void doPID(SetPointInfo * p) {
   p->PrevInput = input;
 }
 
+/* Normalize speed to values within [-MAX_MOTOR_DRIVER_PWM, -MIN_PWM] and [MIN_PWM, MAX_MOTOR_DRIVER_PWM] */
+/* Avoid speeds in interval ]-MIN_PWM, MIN_PWM[ */
+int normalizeSpeed(int spd){
+    int mapped_spd = spd;
+    
+    if (spd > 0) 
+      mapped_spd = map(spd, 1, MAX_MOTOR_DRIVER_PWM, MIN_PWM, MAX_MOTOR_DRIVER_PWM);
+    else if (spd < 0) 
+      mapped_spd = map(spd, -MAX_MOTOR_DRIVER_PWM, -1, -MAX_MOTOR_DRIVER_PWM, -MIN_PWM);
+    
+    return mapped_spd;
+}
+
 /* Read the encoder values and call the PID routine */
 void updatePID() {
   /* Read the encoders */
@@ -125,7 +138,10 @@ void updatePID() {
   doPID(&rightPID);
   doPID(&leftPID);
 
-  /* Set the motor speeds accordingly */
-  setMotorSpeeds(leftPID.output, rightPID.output);
+  /* Set the normalized motor speeds accordingly */
+  setMotorSpeeds(normalizeSpeed(leftPID.output), normalizeSpeed(rightPID.output));
 }
+
+
+
 

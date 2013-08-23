@@ -68,6 +68,8 @@
 
 /* Maximum PWM signal */
 #define MAX_PWM        255
+#define MIN_PWM        1    //lowest PWM before motors start moving reliably; a value of 1 disables this functionality
+#define MAX_MOTOR_DRIVER_PWM  400   //Maximum motor input that motor driver accepts (for DualMC33926MotorShield this is 400)
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -223,6 +225,23 @@ int runCommand() {
     Ko = pid_args[3];
     Serial.println("OK");
     break;
+  case SEND_PWM:
+    { //need brackets to restrict scope of newly created variables to this case statement
+      lastMotorCommand =  millis();
+      int leftSpeed = arg1;
+      int rightSpeed = arg2;
+     
+      //ensure speeds are below MAX_PWM speed
+      if (leftSpeed > MAX_PWM) leftSpeed = MAX_PWM;
+      else if (leftSpeed < -MAX_PWM) leftSpeed = -MAX_PWM;
+      if (rightSpeed > MAX_PWM) rightSpeed = MAX_PWM;
+      else if (rightSpeed < -MAX_PWM) rightSpeed = -MAX_PWM;
+      
+      setMotorSpeeds(leftSpeed, rightSpeed);
+      moving = 0; //no need to do PID
+      Serial.println("OK");
+      break;
+    }
 #endif
   default:
     Serial.println("Invalid Command");
