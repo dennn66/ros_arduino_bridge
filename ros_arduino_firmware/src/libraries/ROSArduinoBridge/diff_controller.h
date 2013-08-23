@@ -33,9 +33,9 @@ SetPointInfo;
 SetPointInfo leftPID, rightPID;
 
 /* PID Parameters */
-int Kp = 20;
-int Kd = 12;
-int Ki = 0;
+int Kp = 10;
+int Kd = 3;
+int Ki = 6;
 int Ko = 50;
 
 unsigned char moving = 0; // is the base in motion?
@@ -70,33 +70,35 @@ void doPID(SetPointInfo * p) {
   long output;
   int input;
 
-  //Perror = p->TargetTicksPerFrame - (p->Encoder - p->PrevEnc);
   input = p->Encoder - p->PrevEnc;
   Perror = p->TargetTicksPerFrame - input;
-
 
   /*
   * Avoid derivative kick and allow tuning changes,
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
   */
-  //output = (Kp * Perror + Kd * (Perror - p->PrevErr) + Ki * p->Ierror) / Ko;
-  // p->PrevErr = Perror;
   output = (Kp * Perror - Kd * (input - p->PrevInput) + p->ITerm) / Ko;
   p->PrevEnc = p->Encoder;
 
-  output += p->output;
   // Accumulate Integral error *or* Limit output.
   // Stop accumulating when output saturates
-  if (output >= MAX_PWM)
+  if (output > MAX_PWM)
     output = MAX_PWM;
-  else if (output <= -MAX_PWM)
+  else if (output < -MAX_PWM)
     output = -MAX_PWM;
   else
   /*
   * allow turning changes, see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
   */
     p->ITerm += Ki * Perror;
+
+  // Avoid motor moving back when requesting forward movement, and vice versa (avoid oscillating around 0)
+  // Also avoid sending output of 0 (stopping motors)
+  if (p->TargetTicksPerFrame > 0 && output <= 0)
+    output = 1;
+  else if (p->TargetTicksPerFrame < 0 && output >= 0)
+    output = -1;
 
   p->output = output;
   p->PrevInput = input;
@@ -107,7 +109,7 @@ void updatePID() {
   /* Read the encoders */
   leftPID.Encoder = readEncoder(0);
   rightPID.Encoder = readEncoder(1);
-  
+
   /* If we're not moving there is nothing more to do */
   if (!moving){
     /*
