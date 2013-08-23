@@ -78,27 +78,30 @@ void doPID(SetPointInfo * p) {
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
   */
-  output = (Kp * Perror - Kd * (input - p->PrevInput) + p->ITerm) / Ko;
+  output = (Kp * Perror - Kd * (input - p->PrevInput) + (p->ITerm + Ki * Perror)) / Ko;
   p->PrevEnc = p->Encoder;
 
-  // Accumulate Integral error *or* Limit output.
-  // Stop accumulating when output saturates
-  if (output > MAX_PWM)
-    output = MAX_PWM;
-  else if (output < -MAX_PWM)
-    output = -MAX_PWM;
-  else
   /*
-  * allow turning changes, see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
+  * Accumulate Integral error *or* Limit output.
+  * 
+  * Avoid motor moving back when requesting forward movement, and vice versa (avoid oscillating around 0)
+  * Also avoid sending output of 0 (stopping motors)
+  *
+  * Stop accumulating integral error when output is limited.
   */
-    p->ITerm += Ki * Perror;
-
-  // Avoid motor moving back when requesting forward movement, and vice versa (avoid oscillating around 0)
-  // Also avoid sending output of 0 (stopping motors)
   if (p->TargetTicksPerFrame > 0 && output <= 0)
     output = 1;
   else if (p->TargetTicksPerFrame < 0 && output >= 0)
     output = -1;
+  else if (output > MAX_PWM)
+    output = MAX_PWM;
+  else if (output < -MAX_PWM)
+    output = -MAX_PWM;
+  else
+    /*
+    * Allow turning changes, see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
+    */
+    p->ITerm += Ki * Perror;
 
   p->output = output;
   p->PrevInput = input;
