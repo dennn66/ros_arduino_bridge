@@ -45,19 +45,25 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
+#define DEBUG
+//#undef DEBUG
+
 #define USE_BASE      // Enable the base controller code
 //#undef USE_BASE     // Disable the base controller code
 
 /* Define the motor controller and encoder library you are using */
 #ifdef USE_BASE
    /* The Pololu VNH5019 dual motor driver shield */
-   #define POLOLU_VNH5019
+   //#define POLOLU_VNH5019
 
    /* The Pololu MC33926 dual motor driver shield */
-   //#define POLOLU_MC33926
+   #define POLOLU_MC33926
 
    /* The RoboGaia encoder shield */
-   #define ROBOGAIA
+   //#define ROBOGAIA
+   
+   /* Encoders directly attached to Arduino board */
+   #define ARDUINO_ENC_COUNTER
 #endif
 
 //#define USE_SERVOS  // Enable use of PWM servos as defined in servos.h
@@ -251,10 +257,35 @@ int runCommand() {
 
 /* Setup function--runs once at startup. */
 void setup() {
+  
+#ifdef DEBUG
+  pinMode(5, OUTPUT); //CPU measurement pin for logic analyzer
+  pinMode(11, OUTPUT); //PID frequency measurement pin for logic analyzer
+#endif
+  
   Serial.begin(BAUDRATE);
 
 // Initialize the motor controller if used */
 #ifdef USE_BASE
+  #ifdef ARDUINO_ENC_COUNTER
+    //set as inputs
+    DDRD &= ~(1<<LEFT_ENC_PIN_A);
+    DDRD &= ~(1<<LEFT_ENC_PIN_B);
+    DDRC &= ~(1<<RIGHT_ENC_PIN_A);
+    DDRC &= ~(1<<RIGHT_ENC_PIN_B);
+    
+    //enable pull up resistors
+    PORTD |= (1<<LEFT_ENC_PIN_A);
+    PORTD |= (1<<LEFT_ENC_PIN_B);
+    PORTC |= (1<<RIGHT_ENC_PIN_A);
+    PORTC |= (1<<RIGHT_ENC_PIN_B);
+    
+    PCMSK2 |= (1 << LEFT_ENC_PIN_A)|(1 << LEFT_ENC_PIN_B); // tell pin change mask to listen to left encoder pins
+    PCMSK1 |= (1 << RIGHT_ENC_PIN_A)|(1 << RIGHT_ENC_PIN_B); // tell pin change mask to listen to right encoder pins
+    
+    PCICR |= (1 << PCIE1) | (1 << PCIE2);   // enable PCINT1 and PCINT2 interrupt in the general interrupt mask
+  #endif
+
   initMotorController();
   resetPID();
 #endif
@@ -316,6 +347,9 @@ void loop() {
 // If we are using base control, run a PID calculation at the appropriate intervals
 #ifdef USE_BASE
   if (millis() > nextPID) {
+  #ifdef DEBUG
+    PINB = (1<<PB3);   //toggle for PID interval measurement with logic analyzer
+  #endif
     updatePID();
     nextPID += PID_INTERVAL;
   }
@@ -325,6 +359,12 @@ void loop() {
     setMotorSpeeds(0, 0);
     moving = 0;
   }
+  
+  #ifdef DEBUG
+  //toggle CPU measurement for logic analyzer on pin 5
+  PIND = (1<<PD5);
+  PIND = (1<<PD5);
+  #endif
 
 #endif
 }
