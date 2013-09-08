@@ -23,6 +23,8 @@
 import roslib; roslib.load_manifest('ros_arduino_python')
 import rospy
 import os
+from dynamic_reconfigure.server import Server
+from ros_arduino_python.cfg import PIDConfig
 
 from math import sin, cos, pi
 from geometry_msgs.msg import Quaternion, Twist, Pose
@@ -88,7 +90,10 @@ class BaseController:
         # Set up the odometry broadcaster
         self.odomPub = rospy.Publisher('odom', Odometry)
         self.odomBroadcaster = TransformBroadcaster()
-        
+		
+        # Enable dynamic reconfigure
+        srv = Server(PIDConfig, self.reconfig)
+
         rospy.loginfo("Started base controller for a base of " + str(self.wheel_track) + "m wide with " + str(self.encoder_resolution) + " ticks per rev")
         rospy.loginfo("Publishing odometry data at: " + str(self.rate) + " Hz")
         
@@ -237,9 +242,23 @@ class BaseController:
             
         self.v_des_left = int(left * self.ticks_per_meter / self.arduino.PID_RATE)
         self.v_des_right = int(right * self.ticks_per_meter / self.arduino.PID_RATE)
-        
+		
+    def reconfig(self, config, level):
+        rospy.loginfo("""Reconfigure Request: {Kp}, {Ki}, {Kd}, {Ko}, {lin_x}, {ang_z}""".format(**config))
+        self.Kp = config['Kp']
+        self.Kd = config['Kd']
+        self.Ki = config['Ki']
+        self.Ko = config['Ko']
 
+        req =  Twist()
+        req.linear.x = config['lin_x']         # m/s
+        req.angular.z = config['ang_z']       # rad/s
         
+        self.arduino.update_pid(self.Kp, self.Kd, self.Ki, self.Ko)
+        self.cmdVelCallback(req)
+        self.timeout = config['base_controller_timeout']
+        return config
+
 
     
 
