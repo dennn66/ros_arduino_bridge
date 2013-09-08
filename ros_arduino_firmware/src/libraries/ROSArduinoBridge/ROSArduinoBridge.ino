@@ -12,8 +12,14 @@
     and the Home Brew Robotics Club (HBRC): http://hbrobotics.org
     
     Authors: Patrick Goebel, James Nugen
-
+    
     Inspired and modeled after the ArbotiX driver by Michael Ferguson
+
+    Extended by Kristof Robot with:
+    - DEBUG routines (incl. free ram detection, and logic analyzer debug pins)
+    - WATCHDOG timer
+    - Motorfault detection and motor coasting stop
+    - Onboard wheel encoder counters
     
     Software License Agreement (BSD License)
 
@@ -45,8 +51,11 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#define DEBUG
-//#undef DEBUG
+//#define DEBUG
+#undef DEBUG
+
+#define WATCHDOG
+//#undef WATCHDOG
 
 #define USE_BASE      // Enable the base controller code
 //#undef USE_BASE     // Disable the base controller code
@@ -70,17 +79,22 @@
 #undef USE_SERVOS     // Disable use of PWM servos
 
 /* Serial port baud rate */
-#define BAUDRATE     57600
+//#define BAUDRATE     57600
+#define BAUDRATE     115200
 
 /* Maximum PWM signal */
-#define MAX_PWM        255
-#define MIN_PWM        1    //lowest PWM before motors start moving reliably; a value of 1 disables this functionality
+#define MAX_PWM        250
+#define MIN_PWM        50    //lowest PWM before motors start moving reliably
 #define MAX_MOTOR_DRIVER_PWM  400   //Maximum motor input that motor driver accepts (for DualMC33926MotorShield this is 400)
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
 #else
 #include "WProgram.h"
+#endif
+
+#ifdef WATCHDOG
+  #include <avr/wdt.h>
 #endif
 
 /* Include definition of serial commands */
@@ -104,7 +118,7 @@
 
   /* PID parameters and functions */
   #include "diff_controller.h"
-
+  
   /* Run the PID loop at 30 times per second */
   #define PID_RATE           30     // Hz
 
@@ -113,15 +127,16 @@
   
   /* Track the next time we make a PID calculation */
   unsigned long nextPID = PID_INTERVAL;
-
+  
   /* Stop the robot if it hasn't received a movement command
    in this number of milliseconds */
   #define AUTO_STOP_INTERVAL 2000
   long lastMotorCommand = AUTO_STOP_INTERVAL;
+  
+  boolean isMotorDisabled=false;
 #endif
 
 /* Variable initialization */
-
 // A pair of varibles to help parse serial commands (thanks Fergs)
 int arg = 0;
 int index = 0;
@@ -205,12 +220,17 @@ int runCommand() {
     break;
    case RESET_ENCODERS:
     resetEncoders();
-    resetPID();
+    resetPID(); //also need to reset PID
     Serial.println("OK");
     break;
   case MOTOR_SPEEDS:
     /* Reset the auto stop timer */
     lastMotorCommand = millis();
+    if (isMotorDisabled) {
+        setMotorEnableFlag(true);
+        isMotorDisabled=false;
+    }
+    
     if (arg1 == 0 && arg2 == 0) {
       setMotorSpeeds(0, 0);
       moving = 0;
@@ -234,6 +254,12 @@ int runCommand() {
   case SEND_PWM:
     { //need brackets to restrict scope of newly created variables to this case statement
       lastMotorCommand =  millis();
+      
+      if (isMotorDisabled) {
+        setMotorEnableFlag(true);
+        isMotorDisabled=false;
+      }
+     
       int leftSpeed = arg1;
       int rightSpeed = arg2;
      
@@ -258,12 +284,14 @@ int runCommand() {
 /* Setup function--runs once at startup. */
 void setup() {
   
-#ifdef DEBUG
-  pinMode(5, OUTPUT); //CPU measurement pin for logic analyzer
-  pinMode(11, OUTPUT); //PID frequency measurement pin for logic analyzer
-#endif
-  
   Serial.begin(BAUDRATE);
+  
+#ifdef DEBUG
+  Serial.println("Starting up...");
+  pinMode(A2, OUTPUT); //cpu measurement pin for logic analyzer
+  pinMode(A3, OUTPUT); //PID frequency measurement pin for logic analyzer
+  Serial.println("CPU and PID frequency measurement PINs active.");
+#endif
 
 // Initialize the motor controller if used */
 #ifdef USE_BASE
@@ -297,6 +325,17 @@ void setup() {
     servos[i].attach(servoPins[i]);
   }
 #endif
+
+#ifdef WATCHDOG
+  wdt_reset();
+  wdt_enable(WDTO_1S);  //reset after 1s of inactivity
+#endif
+
+#ifdef DEBUG
+    Serial.print("Free Mem:");
+    Serial.println(freeRam());
+#endif
+
 }
 
 /* Enter the main loop.  Read and parse input from the serial port
@@ -304,6 +343,13 @@ void setup() {
    interval and check for auto-stop conditions.
 */
 void loop() {
+
+#ifdef WATCHDOG
+    //watchdog protection; if we dont reset this every X ms
+    //arduino will reset
+    wdt_reset();
+#endif
+
   while (Serial.available() > 0) {
     
     // Read the next character
@@ -343,34 +389,63 @@ void loop() {
       }
     }
   }
+
   
 // If we are using base control, run a PID calculation at the appropriate intervals
 #ifdef USE_BASE
   if (millis() > nextPID) {
+    nextPID = millis() + PID_INTERVAL;
   #ifdef DEBUG
-    PINB = (1<<PB3);   //toggle for PID interval measurement with logic analyzer
+    PINC = (1<<PC3);   //toggle for PID interval measurement with logic analyzer, pin A3
   #endif
     updatePID();
-    nextPID += PID_INTERVAL;
   }
   
   // Check to see if we have exceeded the auto-stop interval
   if ((millis() - lastMotorCommand) > AUTO_STOP_INTERVAL) {;
-    setMotorSpeeds(0, 0);
+    //setMotorSpeeds(0, 0);
+    //coast to a stop
+    setMotorEnableFlag(false);
+    isMotorDisabled=true;
     moving = 0;
   }
   
+  //detect motor faults
+  //if motor is disabled, motor fault is active; so excluding that case
+  if (!isMotorDisabled && isMotorFault())
+  {
+    Serial.println("FATAL ERROR: Motor fault - stopping");
+    setMotorEnableFlag(false);
+    isMotorDisabled=true;
+    moving = 0;
+ #ifdef WATCHDOG
+    wdt_disable();
+ #endif
+    while(1){
+      Serial.println("FATAL ERROR: Motor fault - stopped");
+      delay(1000);
+    }
+  }
+  
   #ifdef DEBUG
-  //toggle CPU measurement for logic analyzer on pin 5
-  PIND = (1<<PD5);
-  PIND = (1<<PD5);
+    //toggle cpu measurement for logic analyzer on pin 5
+    PINC = (1<<PC2); //pin A2
   #endif
 
 #endif
 }
 
+#ifdef DEBUG
+/* Report free ram */
+/* From http://jeelabs.org/2011/05/22/atmega-memory-use/ */
+int freeRam () {
 
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 
+}
+#endif
 
 
 

@@ -55,6 +55,14 @@
     setMotorSpeed(LEFT, leftSpeed);
     setMotorSpeed(RIGHT, rightSpeed);
   }
+  
+  void setMotorEnableFlag(boolean isEnabled){
+    drive.setMotorEnableFlag(isEnabled); 
+  }
+  
+  boolean isMotorFault(){
+    return drive.getFault();
+  }
 #else
   #error A motor driver must be selected!
 #endif
