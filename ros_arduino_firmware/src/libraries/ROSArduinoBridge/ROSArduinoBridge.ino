@@ -14,7 +14,7 @@
     Authors: Patrick Goebel, James Nugen
     
     Inspired and modeled after the ArbotiX driver by Michael Ferguson
-
+    
     Extended by Kristof Robot with:
     - DEBUG routines (incl. free ram detection, and logic analyzer debug pins)
     - WATCHDOG timer
@@ -23,6 +23,7 @@
         - Onboard wheel encoder counters
         - TinyQed wheel encoder counters
     - Two types of PID controllers (position and velocity)
+    - Collision avoidance routine (to be run without ROS, and three sonars)
     
     Software License Agreement (BSD License)
 
@@ -57,6 +58,9 @@
 //#define DEBUG
 #undef DEBUG
 
+#define COLLISION_AVOIDANCE
+//#undef COLLISION_AVOIDANCE
+
 #define WATCHDOG
 //#undef WATCHDOG
 
@@ -73,7 +77,7 @@
 
    /* The RoboGaia encoder shield */
    //#define ROBOGAIA
-   
+
    /* TinyQED encoder counters */
    //#define TINYQED
    
@@ -133,7 +137,6 @@
   const int INIT_KI = 30;      
   const int INIT_KO = 5;  
 
-  
   /* Run the PID loop at 30 times per second */
   #define PID_RATE           30     // Hz
 
@@ -151,6 +154,13 @@
   boolean isMotorDisabled=false;
 #endif
 
+#ifdef COLLISION_AVOIDANCE
+  #include <NewPing.h> //IMPORTANT: assuming adapted NewPing library, which returns MAX DISTANCE when no distance detected, rather than 0!!
+  #include "FastRunningMedian.h"
+  #include "collision_avoidance.h"
+#endif
+
+#ifndef COLLISION_AVOIDANCE 
 /* Variable initialization */
 // A pair of varibles to help parse serial commands (thanks Fergs)
 int arg = 0;
@@ -292,6 +302,7 @@ int runCommand() {
     break;
   }
 }
+#endif
 
 /* Setup function--runs once at startup. */
 void setup() {
@@ -335,6 +346,21 @@ void setup() {
   //init PID
   setPIDParams(INIT_KP, INIT_KD, INIT_KI, INIT_KO, PID_RATE);
   resetPID();
+
+  #ifdef COLLISION_AVOIDANCE
+    //get first distances
+    for (int i=0; i<FRONT_PING_NUM*PING_MEDIAN_NUM; i++){
+      getNextDistance();
+      delay(10); //need to wait at least 30ms between pings; with three sonars; 10ms
+    }
+    
+    if (ENABLE_DEBUG) printDistances();
+    
+    bucketTimer=millis();
+    
+    if (ENABLE_DEBUG) Serial.println("Collision Setup Ready");
+  #endif
+  
 #endif
 
 /* Attach servos if used */
@@ -369,6 +395,7 @@ void loop() {
     wdt_reset();
 #endif
 
+#ifndef COLLISION_AVOIDANCE 
   while (Serial.available() > 0) {
     
     // Read the next character
@@ -408,7 +435,7 @@ void loop() {
       }
     }
   }
-
+#endif
   
 // If we are using base control, run a PID calculation at the appropriate intervals
 #ifdef USE_BASE
@@ -420,6 +447,7 @@ void loop() {
     updatePID();
   }
   
+  #ifndef COLLISION_AVOIDANCE
   // Check to see if we have exceeded the auto-stop interval
   if ((millis() - lastMotorCommand) > AUTO_STOP_INTERVAL) {;
     //setMotorSpeeds(0, 0);
@@ -428,6 +456,7 @@ void loop() {
     isMotorDisabled=true;
     moving = 0;
   }
+  #endif
   
   //detect motor faults
   //if motor is disabled, motor fault is active; so excluding that case
@@ -445,6 +474,28 @@ void loop() {
       delay(1000);
     }
   }
+  
+  #ifdef COLLISION_AVOIDANCE
+      //if pingSpeed time has passed, trigger new sonar ping
+      if (millis() >= pingTimer) {   // pingSpeed milliseconds since last ping, do another ping.
+        //recalibrate pingTimer - to avoid problems
+        pingTimer = millis()+pingSpeed;
+        getNextDistance();
+      }
+     
+     //check whether we are stuck
+     if (millis() >= stuckTimer){
+         stuckTimer += STUCK_CHECK_DELAY;
+         if (isStuck()) escape(); //if we are supposed to be moving, but not moving, initiate escape procedures
+     }
+    
+    if (millis() >= moveTimer){
+        //time for new movement
+        if (ENABLE_DEBUG) printDistances();
+        move();
+    }
+     
+  #endif
   
   #ifdef DEBUG
     //toggle cpu measurement for logic analyzer on pin 5
