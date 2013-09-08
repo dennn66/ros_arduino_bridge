@@ -19,7 +19,9 @@
     - DEBUG routines (incl. free ram detection, and logic analyzer debug pins)
     - WATCHDOG timer
     - Motorfault detection and motor coasting stop
-    - Onboard wheel encoder counters
+    - Additional wheel encoder counter support:
+        - Onboard wheel encoder counters
+        - TinyQed wheel encoder counters
     - Two types of PID controllers (position and velocity)
     
     Software License Agreement (BSD License)
@@ -71,6 +73,9 @@
 
    /* The RoboGaia encoder shield */
    //#define ROBOGAIA
+   
+   /* TinyQED encoder counters */
+   //#define TINYQED
    
    /* Encoders directly attached to Arduino board */
    #define ARDUINO_ENC_COUNTER
@@ -302,6 +307,11 @@ void setup() {
 
 // Initialize the motor controller if used */
 #ifdef USE_BASE
+  #ifdef TINYQED
+    //set fast I2C bus speed for TQED encoder counters
+    TWBR = ((16000000L / 400000L) - 16) / 2;
+  #endif
+  
   #ifdef ARDUINO_ENC_COUNTER
     //set as inputs
     DDRD &= ~(1<<LEFT_ENC_PIN_A);

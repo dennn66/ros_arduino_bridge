@@ -27,6 +27,31 @@
     if (i == LEFT) return encoders.YAxisReset();
     else return encoders.XAxisReset();
   }
+#elif defined TINYQED
+  /* Tiny QED Encoder Counter - https://github.com/KristofRobot/TQED */
+  #include <Wire.h>
+  #include <TQED.h>
+  
+  /* Create the encoder counter objects */
+  TQED qedLeft(0x38);     // Change the I2C address as needed
+  TQED qedRight(0x36);    // Change the I2C address as needed
+
+  /* Wrap the encoder reading function */
+  long readEncoder(int i) {
+    if (i == LEFT) return qedLeft.getCount();
+    else return qedRight.getCount();
+  }
+
+  /* Wrap the encoder reset function */
+  void resetEncoder(int i) {
+    if (i == LEFT){
+      qedLeft.resetCount();
+      return;
+    } else { 
+      qedRight.resetCount();
+      return;
+    }
+  }
 #elif defined ARDUINO_ENC_COUNTER
   volatile long left_enc_pos = 0L;
   volatile long right_enc_pos = 0L;
@@ -36,8 +61,8 @@
   ISR (PCINT2_vect){
   	static uint8_t enc_last=0;
         
-	enc_last <<=2; //shift previous state two places
-	enc_last |= (PIND & (3 << 2)) >> 2; //read the current state into lowest 2 bits
+    	enc_last <<=2; //shift previous state two places
+  	enc_last |= (PIND & (3 << 2)) >> 2; //read the current state into lowest 2 bits
   
   	left_enc_pos += ENC_STATES[(enc_last & 0x0f)];
   }
@@ -46,8 +71,8 @@
   ISR (PCINT1_vect){
         static uint8_t enc_last=0;
           	
-	enc_last <<=2; //shift previous state two places
-	enc_last |= (PINC & (3 << 4)) >> 4; //read the current state into lowest 2 bits
+        enc_last <<=2; //shift previous state two places
+  	enc_last |= (PINC & (3 << 4)) >> 4; //read the current state into lowest 2 bits
   
   	right_enc_pos += ENC_STATES[(enc_last & 0x0f)];
   }
@@ -58,7 +83,7 @@
     if (i == LEFT) return left_enc_pos;
     else return right_enc_pos;
   }
-
+  
   /* Wrap the encoder reset function */
   void resetEncoder(int i) {
     if (i == LEFT){
