@@ -1,85 +1,178 @@
-/* Functions and type-defs for PID control.
-
-   Taken mostly from Mike Ferguson's ArbotiX code which lives at:
-   
-   http://vanadium-ros-pkg.googlecode.com/svn/trunk/arbotix/
+/* 
+*  Functions and type-defs for PID control.
+*
+*  Based on the Beginner PID's series by Brett Beauregard - http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-introduction/
+*  Adapted to use ideal velocity form or position form.
+*
+*  Originally adapted from Mike Ferguson's ArbotiX code which lives at:
+*   
+*  http://vanadium-ros-pkg.googlecode.com/svn/trunk/arbotix/
 */
-
-/* PID setpoint info For a Motor */
-typedef struct {
-  double TargetTicksPerFrame;    // target speed in ticks per frame
-  long Encoder;                  // encoder count
-  long PrevEnc;                  // last encoder count
-
-  /*
-  * Using previous input (PrevInput) instead of PrevError to avoid derivative kick,
-  * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
-  */
-  int PrevInput;                // last input
-  //int PrevErr;                   // last error
-
-  /*
-  * Using integrated term (ITerm) instead of integrated error (Ierror),
-  * to allow tuning changes,
-  * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
-  */
-  //int Ierror;
-  int ITerm;                    //integrated term
-
-  long output;                    // last motor setting
-}
-SetPointInfo;
+#ifdef VELOCITY_PID
+  /* PID setpoint info for a Motor */
+  typedef struct {
+    int targetTicksPerFrame;    // target speed in ticks per frame
+    long encoder;                  // encoder count
+    long prevEnc;                  // last encoder count
+    int prevInput;                 // last input
+    int prevPrevInput;             // input before last input
+    int prevError;                 // last error
+    int output;                   // last motor setting
+  }
+  SetPointInfo;
+#elif defined POSITION_PID
+  /* PID setpoint info For a Motor */
+  typedef struct {
+    int targetTicksPerFrame;    // target speed in ticks per frame
+    long encoder;                  // encoder count
+    long prevEnc;                  // last encoder count
+  
+    /*
+    * Using previous input (PrevInput) instead of PrevError to avoid derivative kick,
+    * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
+    */
+    int prevInput;                // last input
+    //int prevErr;                   // last error
+  
+    /*
+    * Using integrated term (ITerm) instead of integrated error (Ierror),
+    * to allow tuning changes,
+    * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
+    */
+    long iTerm;                    //integrated term
+    int output;                    // last motor setting
+  }
+  SetPointInfo;
+#endif
 
 SetPointInfo leftPID, rightPID;
 
-/* PID Parameters */
-int Kp = 10;
-int Kd = 3;
-int Ki = 6;
-int Ko = 50;
+/* PID Parameters 
+* Do not SET these directly here, unless you know what you are doing 
+* Use setPIDParameters() instead
+*/
+int Kp = 0;    
+int Kd = 0;     //for velocity PID best to keep Kd at zero
+int Ki = 0;      
+int Ko = 1; 
 
 unsigned char moving = 0; // is the base in motion?
 
 /*
 * Initialize PID variables to zero to prevent startup spikes
 * when turning PID on to start moving
-* In particular, assign both Encoder and PrevEnc the current encoder value
+* In particular, assign both encoder and prevEnc the current encoder value
 * See http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/
 * Note that the assumption here is that PID is only turned on
 * when going from stop to moving, that's why we can init everything on zero.
 */
 void resetPID(){
-   leftPID.TargetTicksPerFrame = 0.0;
-   leftPID.Encoder = readEncoder(0);
-   leftPID.PrevEnc = leftPID.Encoder;
+#ifdef VELOCITY_PID
+   leftPID.targetTicksPerFrame = 0;
+   leftPID.encoder = readEncoder(0);
+   leftPID.prevEnc = leftPID.encoder;
    leftPID.output = 0;
-   leftPID.PrevInput = 0;
-   leftPID.ITerm = 0;
+   leftPID.prevInput = 0;
+   leftPID.prevPrevInput = 0;
+   leftPID.prevError = 0;
 
-   rightPID.TargetTicksPerFrame = 0.0;
-   rightPID.Encoder = readEncoder(1);
-   rightPID.PrevEnc = rightPID.Encoder;
+   rightPID.targetTicksPerFrame = 0;
+   rightPID.encoder = readEncoder(1);
+   rightPID.prevEnc = rightPID.encoder;
    rightPID.output = 0;
-   rightPID.PrevInput = 0;
-   rightPID.ITerm = 0;
+   rightPID.prevInput = 0;
+   rightPID.prevPrevInput = 0;
+   rightPID.prevError = 0;
+#elif defined POSITION_PID
+   leftPID.targetTicksPerFrame = 0;
+   leftPID.encoder = readEncoder(0);
+   leftPID.prevEnc = leftPID.encoder;
+   leftPID.output = 0;
+   leftPID.prevInput = 0;
+   leftPID.iTerm = 0;
+
+   rightPID.targetTicksPerFrame = 0;
+   rightPID.encoder = readEncoder(1);
+   rightPID.prevEnc = rightPID.encoder;
+   rightPID.output = 0;
+   rightPID.prevInput = 0;
+   rightPID.iTerm = 0;
+#endif
 }
 
+#ifdef VELOCITY_PID
 /* PID routine to compute the next motor commands */
 void doPID(SetPointInfo * p) {
-  long Perror;
-  long output;
+  int error;
+  int output;
   int input;
 
-  input = p->Encoder - p->PrevEnc;
-  Perror = p->TargetTicksPerFrame - input;
+  input = p->encoder - p->prevEnc;
+  error = p->targetTicksPerFrame - input;
+  
+  /*
+  * Use velocity form rather than position form.
+  *
+  * Avoid derivative kick (derivative on measurement):
+  * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
+  *
+  * see https://groups.google.com/forum/#!topic/diy-pid-control/1Tkwp9e_8co for full derivation 
+  */
+  output = p->output + (Kp * (error - p->prevError) + Ki * error - Kd * (input - 2*p->prevInput - p->prevPrevInput)) / Ko;
+  
+  /*version robust against too aggressive setpoint tracking (with proportional on measurement)*/
+  //output = p->output + (Kp * (p->prevInput - input) + Ki * error - Kd * (input - 2*p->prevInput - p->prevPrevInput)) / Ko;
+  
+  /*
+  * Limit output.
+  * 
+  * Avoid motor moving back when requesting forward movement, and vice versa (avoid oscillating around 0)
+  * Also avoid sending output of 0 (stopping motors)
+  *
+  * Stop accumulating integral error when output is limited.
+  */
+  if (p->targetTicksPerFrame > 0 && output < MIN_PWM) 
+    output = MIN_PWM;
+  else if (p->targetTicksPerFrame < 0 && output > -MIN_PWM) 
+    output = -MIN_PWM;
+  else if (output > MAX_PWM)
+    output = MAX_PWM;
+  else if (output < -MAX_PWM)
+    output = -MAX_PWM;
+    
+  p->output = output;
+  p->prevEnc = p->encoder;
+  p->prevPrevInput = p->prevInput;
+  p->prevInput = input;
+  p->prevError = error;
+  
+  /*Serial.print(output);
+  Serial.print(" ");
+  Serial.print(error);
+  Serial.print(" ");
+  Serial.println(input);*/
+}
+#elif defined POSITION_PID
+/* PID routine to compute the next motor commands */
+void doPID(SetPointInfo * p) {
+  int error;
+  int output;
+  int input;
+
+  input = p->encoder - p->prevEnc;
+  error = p->targetTicksPerFrame - input;
+  
+  p->iTerm += (Ki * error) / Ko;
+  if (p->iTerm > (MAX_PWM-MIN_PWM)) p->iTerm = MAX_PWM;
+  else if (p->iTerm < (-MAX_PWM+MIN_PWM)) p->iTerm = -MAX_PWM;
 
   /*
   * Avoid derivative kick and allow tuning changes,
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
   * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
   */
-  output = (Kp * Perror - Kd * (input - p->PrevInput) + (p->ITerm + Ki * Perror)) / Ko;
-  p->PrevEnc = p->Encoder;
+  output = (((long)Kp) * error - Kd * (input - p->prevInput))/ Ko + p->iTerm;
+  p->prevEnc = p->encoder;
 
   /*
   * Accumulate Integral error *or* Limit output.
@@ -89,43 +182,30 @@ void doPID(SetPointInfo * p) {
   *
   * Stop accumulating integral error when output is limited.
   */
-  if (p->TargetTicksPerFrame > 0 && output <= 0)
-    output = 1;
-  else if (p->TargetTicksPerFrame < 0 && output >= 0)
-    output = -1;
-  else if (output > MAX_PWM)
+  if (p->targetTicksPerFrame > 0){
+    output += MIN_PWM;
+    if (output < MIN_PWM) output = MIN_PWM;
+  } else if (p->targetTicksPerFrame < 0){
+    output += -MIN_PWM;
+    if (output > -MIN_PWM) output = -MIN_PWM;
+  } 
+  
+  if (output > MAX_PWM)
     output = MAX_PWM;
   else if (output < -MAX_PWM)
     output = -MAX_PWM;
-  else
-    /*
-    * Allow turning changes, see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
-    */
-    p->ITerm += Ki * Perror;
 
   p->output = output;
-  p->PrevInput = input;
+  p->prevInput = input;
 }
-
-/* Normalize speed to values within [-MAX_MOTOR_DRIVER_PWM, -MIN_PWM] and [MIN_PWM, MAX_MOTOR_DRIVER_PWM] */
-/* Avoid speeds in interval ]-MIN_PWM, MIN_PWM[ */
-int normalizeSpeed(int spd){
-    int mapped_spd = spd;
-    
-    if (spd > 0) 
-      mapped_spd = map(spd, 1, MAX_MOTOR_DRIVER_PWM, MIN_PWM, MAX_MOTOR_DRIVER_PWM);
-    else if (spd < 0) 
-      mapped_spd = map(spd, -MAX_MOTOR_DRIVER_PWM, -1, -MAX_MOTOR_DRIVER_PWM, -MIN_PWM);
-    
-    return mapped_spd;
-}
+#endif
 
 /* Read the encoder values and call the PID routine */
 void updatePID() {
   /* Read the encoders */
-  leftPID.Encoder = readEncoder(0);
-  rightPID.Encoder = readEncoder(1);
-
+  leftPID.encoder = readEncoder(0);
+  rightPID.encoder = readEncoder(1);
+    
   /* If we're not moving there is nothing more to do */
   if (!moving){
     /*
@@ -133,16 +213,27 @@ void updatePID() {
     * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-initialization/
     * Most importantly, keep Encoder and PrevEnc synced; use that as criteria whether we need reset
     */
-    if (leftPID.PrevEnc != leftPID.Encoder || rightPID.PrevEnc != rightPID.Encoder) resetPID();
+    if (leftPID.prevEnc != leftPID.encoder || rightPID.prevEnc != rightPID.encoder) resetPID();
     return;
   }
-
+  
   /* Compute PID update for each motor */
   doPID(&rightPID);
   doPID(&leftPID);
 
-  /* Set the normalized motor speeds accordingly */
-  setMotorSpeeds(normalizeSpeed(leftPID.output), normalizeSpeed(rightPID.output));
+  /* Set the motor speeds accordingly */
+  setMotorSpeeds(leftPID.output, rightPID.output);
+}
+
+
+/* Set PID parameters */
+//Assuming pid_rate and Kx parameters all given in s
+//Doing some effort to keep things in integer math, through use of Ko
+void setPIDParams(int newKp, int newKd, int newKi, int newKo, int pidRate){
+    Kp = newKp * pidRate;
+    Ki = newKi;
+    Kd = newKd * pidRate * pidRate;  
+    Ko = newKo * pidRate;
 }
 
 

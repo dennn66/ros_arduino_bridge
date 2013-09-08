@@ -20,6 +20,7 @@
     - WATCHDOG timer
     - Motorfault detection and motor coasting stop
     - Onboard wheel encoder counters
+    - Two types of PID controllers (position and velocity)
     
     Software License Agreement (BSD License)
 
@@ -73,6 +74,9 @@
    
    /* Encoders directly attached to Arduino board */
    #define ARDUINO_ENC_COUNTER
+   
+   //#define POSITION_PID
+   #define VELOCITY_PID
 #endif
 
 //#define USE_SERVOS  // Enable use of PWM servos as defined in servos.h
@@ -85,7 +89,6 @@
 /* Maximum PWM signal */
 #define MAX_PWM        250
 #define MIN_PWM        50    //lowest PWM before motors start moving reliably
-#define MAX_MOTOR_DRIVER_PWM  400   //Maximum motor input that motor driver accepts (for DualMC33926MotorShield this is 400)
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -118,6 +121,13 @@
 
   /* PID parameters and functions */
   #include "diff_controller.h"
+  
+  /* Initial PID Parameters */
+  const int INIT_KP = 1;    
+  const int INIT_KD = 0;     //when using velocity PID, best to keep this at zero
+  const int INIT_KI = 30;      
+  const int INIT_KO = 5;  
+
   
   /* Run the PID loop at 30 times per second */
   #define PID_RATE           30     // Hz
@@ -236,8 +246,8 @@ int runCommand() {
       moving = 0;
     }
     else moving = 1;
-    leftPID.TargetTicksPerFrame = arg1;
-    rightPID.TargetTicksPerFrame = arg2;
+    leftPID.targetTicksPerFrame = arg1;
+    rightPID.targetTicksPerFrame = arg2;
     Serial.println("OK"); 
     break;
   case UPDATE_PID:
@@ -245,10 +255,7 @@ int runCommand() {
        pid_args[i] = atoi(str);
        i++;
     }
-    Kp = pid_args[0];
-    Kd = pid_args[1];
-    Ki = pid_args[2];
-    Ko = pid_args[3];
+    setPIDParams(pid_args[0], pid_args[1], pid_args[2], pid_args[3], PID_RATE);
     Serial.println("OK");
     break;
   case SEND_PWM:
@@ -315,6 +322,8 @@ void setup() {
   #endif
 
   initMotorController();
+  //init PID
+  setPIDParams(INIT_KP, INIT_KD, INIT_KI, INIT_KO, PID_RATE);
   resetPID();
 #endif
 
