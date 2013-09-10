@@ -52,7 +52,7 @@ SetPointInfo leftPID, rightPID;
 * Use setPIDParameters() instead
 */
 int Kp = 0;    
-int Kd = 0;     //for velocity PID best to keep Kd at zero
+int Kd = 0;
 int Ki = 0;      
 int Ko = 1; 
 
@@ -118,10 +118,10 @@ void doPID(SetPointInfo * p) {
   *
   * see https://groups.google.com/forum/#!topic/diy-pid-control/1Tkwp9e_8co for full derivation 
   */
-  output = p->output + (Kp * (error - p->prevError) + Ki * error - Kd * (input - 2*p->prevInput - p->prevPrevInput)) / Ko;
+  output = p->output + (Kp * (error - p->prevError) + Ki * error - Kd * (input - 2*p->prevInput + p->prevPrevInput)) / Ko;
   
   /*version robust against too aggressive setpoint tracking (with proportional on measurement)*/
-  //output = p->output + (Kp * (p->prevInput - input) + Ki * error - Kd * (input - 2*p->prevInput - p->prevPrevInput)) / Ko;
+  //output = p->output + (Kp * (p->prevInput - input) + Ki * error - Kd * (input - 2*p->prevInput + p->prevPrevInput)) / Ko;
   
   /*
   * Limit output.

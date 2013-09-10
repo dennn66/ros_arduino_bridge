@@ -133,7 +133,7 @@
   
   /* Initial PID Parameters */
   const int INIT_KP = 1;    
-  const int INIT_KD = 0;     //when using velocity PID, best to keep this at zero
+  const int INIT_KD = 0;
   const int INIT_KI = 30;      
   const int INIT_KO = 5;  
 
