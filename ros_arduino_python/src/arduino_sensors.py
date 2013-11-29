@@ -50,7 +50,6 @@ class Sensor(object):
 
         self.frame_id = frame_id
         self.value = None
-        
         self.t_delta = rospy.Duration(1.0 / self.rate)
         self.t_next = rospy.Time.now() + self.t_delta
     
@@ -58,16 +57,15 @@ class Sensor(object):
         now = rospy.Time.now()
         if now > self.t_next:
             if self.direction == "input":
-                try:
+#                try:
                     self.value = self.read_value()
-                except:
-                    return
+#                except:
+#                    return
             else:
                 try:
                     self.ack = self.write_value()
                 except:
                     return          
-    
             # For range sensors, assign the value to the range message field
             if self.message_type == MessageType.RANGE:
                 self.msg.range = self.value
@@ -212,8 +210,7 @@ class PointCloudPing(PointCloudRangeSensor):
      
     def read_value(self):
         # The Arduino Ping code returns the distance in centimeters
-        cm = self.controller.ping(self.pin)
-        
+        cm = self.controller.ping_median(self.pin)
         # Convert it to meters for ROS
         distance = cm / 100.0
 

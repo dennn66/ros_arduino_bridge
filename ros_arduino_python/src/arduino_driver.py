@@ -328,7 +328,13 @@ class Arduino:
             and returns the range in cm.  Sonar distance resolution is integer based.
         '''
         return self.execute('p %d' %pin);
-    
+
+    def ping_median(self, pin):
+    ''' Median ping - returns the median filtered range in cm.
+        Sonar distance resolution is integer based.
+    '''
+    return self.execute('q %d' %pin); 
+
 #    def get_maxez1(self, triggerPin, outputPin):
 #        ''' The maxez1 command queries a Maxbotix MaxSonar-EZ1 sonar
 #            sensor connected to the General Purpose I/O lines, triggerPin, and

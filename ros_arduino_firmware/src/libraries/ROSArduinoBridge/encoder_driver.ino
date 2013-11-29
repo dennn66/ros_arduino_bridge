@@ -83,7 +83,7 @@
     if (i == LEFT) return left_enc_pos;
     else return right_enc_pos;
   }
-  
+
   /* Wrap the encoder reset function */
   void resetEncoder(int i) {
     if (i == LEFT){

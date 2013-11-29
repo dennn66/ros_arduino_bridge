@@ -7,35 +7,13 @@
 #ifdef COLLISION_AVOIDANCE
 
 /*############################ Variable Declarations ###########################################*/
-const boolean ENABLE_DEBUG=true;
-
-/******* SONAR variables *****************/
-const byte MAX_DISTANCE=75; // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm. No reason to wait longer for ping to return than this.
-const byte CHANGE_DIST=50;  //distance to use for changing direction without stopping
-const byte MIN_FRONT_DIST=30;  //distance to stop immediately, and seek new direction
-const byte DEFAULT_DIST=75; //distance to return when sonar disabled
-
-NewPing sonarFront[3] = { // Sensor object array.
-  NewPing(11, 11, MAX_DISTANCE), //left
-  NewPing(6, 6, MAX_DISTANCE),   //middle
-  NewPing(5, 5, MAX_DISTANCE)   //right
-};
-
-const int pingSpeed = 100; // How frequently are we going to send out a ping (in milliseconds). 50ms would be 20 times a second; retriggering of same sonar is best kept above 30ms
-unsigned long pingTimer;     // Holds the next ping time.
-byte pingPointer=0;            //holds position of next sonar to use; will overflow by design
-const byte FRONT_PING_NUM=3;
-const byte PING_MEDIAN_NUM=3;  //holds number of pings for median filter
-
-//int frontDistance[FRONT_PING_NUM][PING_MEDIAN_NUM]; //init distance on 0, left, center, right
-FastRunningMedian<unsigned int,5, 0> frontDistance[FRONT_PING_NUM];
-//int backDistance[3]= {0, 0, 0}; //init distance on 0, left, center, right
-
-const unsigned int MAX_ECHO_TIME = min(MAX_DISTANCE, MAX_SENSOR_DISTANCE) * US_ROUNDTRIP_CM + (US_ROUNDTRIP_CM / 2); // Calculate the maximum distance in uS.
+const boolean ENABLE_DEBUG=false;
 
 /******** Move variables ***************/
 const int TURN_SPEED=50;  //in ticks per frame
-const int FORWARD_SPEED=50;
+const int FORWARD_SPEED=50;  
+const int MAX_SPEED=170;   //about 0.3ms (1 tick is 0.0018m
+byte deltaSpeed=0; //increments as we continue going forward, speeding up from FORWARD_SPEED to MAX_SPEED
 
 const int FORWARD_DELAY=100; //time to move forward without doing any check
 const int STOP_DELAY=1000;
@@ -55,39 +33,14 @@ byte stuckCounterBucket=0;
 const byte MAX_STUCK_BUCKET_COUNT=3;   //number of stuck triggers before we react with escape routine
 const byte STOP_MAX_STUCK_BUCKET_COUNT = 10;  //number of stuck triggers before we give up entirely
 const int STUCK_CHECK_DELAY=500; // how long to wait between "stuck" checks
-const byte STUCK_PWM=100;
+const byte STUCK_PWM=100; //PWM value that we consider as "stall speed" - needs to be chosen in careful combination with FORWARD_SPEED. 
+//For example, following works well:
+//FORWARD_SPEED=100 + STUCK_PWM=150
+//FORWARD_SPEED=50 + STUCK_PWM=100
 
 byte escapeMode=0;
 
-/*######################################################################################################*/
-
-/* 
-* Get next distance by pinging using the next sonar in row
-* and adding the value to its running median
-*/
-void getNextDistance(){
-  byte sonarPos = pingPointer%FRONT_PING_NUM;
-  
-  frontDistance[sonarPos].addValue(sonarFront[sonarPos].ping_cm());
-  
-  pingPointer++; //increment, and let it overflow when it reaches max (255)
-}
-
-/* Return minimal front distance detected */
-int getMinFrontDistance(){
-   return min(frontDistance[2].getMedian(),min(frontDistance[0].getMedian(),frontDistance[1].getMedian()));
-}
-
-
 /*########################### Routines ############################*/
-void printDistances(){
-  String space=" ";
-  Serial.print(frontDistance[0].getMedian());
-  Serial.print(space);
-  Serial.print(frontDistance[1].getMedian());
-  Serial.print(space);
-  Serial.println(frontDistance[2].getMedian());
-}
 
 void motorCommand(int motor1, int motor2){
   if (motor1 == 0 && motor2 == 0) {
@@ -132,7 +85,8 @@ void turnLeft(){
 
 void moveForward(){
   if (ENABLE_DEBUG) Serial.println("F");
-  motorCommand(FORWARD_SPEED, FORWARD_SPEED);
+
+  motorCommand(FORWARD_SPEED+deltaSpeed, FORWARD_SPEED+deltaSpeed);
   
   //leak bucket
   if (turnCounterBucket > 0 && millis() >= bucketTimer){
@@ -199,7 +153,8 @@ boolean isStuck(){
   }*/
   
   /*stuck detection routine based on PWM */
-  if ((leftPID.output > STUCK_PWM || rightPID.output > STUCK_PWM)){
+  /*adding deltaSpeed to avoid triggering it because of too high deltaspeed */
+  if (leftPID.output > (STUCK_PWM+deltaSpeed) || rightPID.output > (STUCK_PWM+deltaSpeed)){
     stuckCounterBucket+=2;
     if (ENABLE_DEBUG) Serial.println("EI");
   } else if (stuckCounterBucket > 0) {
@@ -253,12 +208,21 @@ void escape(){
 /* Move routine */
 void move(){
  if (escapeMode>0){
+       deltaSpeed=0;
        //continue escape routines
        escape();
- } else if (getMinFrontDistance() < MIN_FRONT_DIST) 
+ } else if (getMinFrontDistance() < MIN_FRONT_DIST) {
+     deltaSpeed=0;
      turnAfterCheck(true);  //stop and turn
- else {     
-     moveForward();  //> CHANGE_DIST; move forward
+ } else { 
+     //move forward
+     if (getMinFrontDistance() < SLOW_DIST){
+       if (deltaSpeed>=5) deltaSpeed-=5; //slow down - make sure not to go under zero!!
+       else deltaSpeed=0;
+     }else{
+       if ((deltaSpeed + FORWARD_SPEED) < MAX_SPEED) deltaSpeed++; //speed up
+     }
+     moveForward();  //move forward
  }
 }
 

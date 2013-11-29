@@ -58,8 +58,8 @@
 //#define DEBUG
 #undef DEBUG
 
-#define COLLISION_AVOIDANCE
-//#undef COLLISION_AVOIDANCE
+//#define COLLISION_AVOIDANCE
+#undef COLLISION_AVOIDANCE
 
 #define WATCHDOG
 //#undef WATCHDOG
@@ -96,7 +96,7 @@
 #define BAUDRATE     115200
 
 /* Maximum PWM signal */
-#define MAX_PWM        250
+#define MAX_PWM        400
 #define MIN_PWM        50    //lowest PWM before motors start moving reliably
 
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -113,6 +113,8 @@
 #include "commands.h"
 
 /* Sensor functions */
+#include <NewPing.h> //IMPORTANT: assuming adapted NewPing library, which returns MAX DISTANCE when no distance detected, rather than 0!!
+#include "FastRunningMedian.h"
 #include "sensors.h"
 
 /* Include servo support if required */
@@ -155,8 +157,6 @@
 #endif
 
 #ifdef COLLISION_AVOIDANCE
-  #include <NewPing.h> //IMPORTANT: assuming adapted NewPing library, which returns MAX DISTANCE when no distance detected, rather than 0!!
-  #include "FastRunningMedian.h"
   #include "collision_avoidance.h"
 #endif
 
@@ -226,6 +226,9 @@ int runCommand() {
     break;
   case PING:
     Serial.println(Ping(arg1));
+    break;
+  case PING_MEDIAN:
+    Serial.println(getMedianPing(arg1));
     break;
 #ifdef USE_SERVOS
   case SERVO_WRITE:
@@ -346,16 +349,35 @@ void setup() {
   //init PID
   setPIDParams(INIT_KP, INIT_KD, INIT_KI, INIT_KO, PID_RATE);
   resetPID();
+  
+  /*
+  // initialize Timer2, to overflow at 30.52Hz (every 32.768ms)
+  cli();			// disable global interrupts
+  TCCR2A = 0;		// set entire TCCR1A register to 0
+  TCCR2B = 0;		// same for TCCR1B
 
-  #ifdef COLLISION_AVOIDANCE
-    //get first distances
-    for (int i=0; i<FRONT_PING_NUM*PING_MEDIAN_NUM; i++){
+  //enable phase correct (i.e. counting up and down, and then overflow
+  //this effectively further halves the resolution
+  TCCR2A |= (1<< WGM20);
+  // Set CS10 and CS12 bits for 1024 prescaler:
+  TCCR2B |= (1 << CS22) | (1 << CS21) | (1<< CS20);
+  // enable timer overflow
+  TIMSK2 |= (1 << TOIE2);
+  sei();			// enable global interrupts
+  */
+  
+  //get first distances
+  for (int i=0; i<FRONT_PING_NUM*PING_MEDIAN_NUM; i++){
       getNextDistance();
       delay(10); //need to wait at least 30ms between pings; with three sonars; 10ms
-    }
-    
-    if (ENABLE_DEBUG) printDistances();
-    
+  }
+
+  #ifdef DEBUG  
+   printDistances();
+  #endif
+  
+  #ifdef COLLISION_AVOIDANCE
+    //reset bucket timer to detect stuck conditions
     bucketTimer=millis();
     
     if (ENABLE_DEBUG) Serial.println("Collision Setup Ready");
@@ -458,6 +480,7 @@ void loop() {
   }
   #endif
   
+  #ifndef DEBUG
   //detect motor faults
   //if motor is disabled, motor fault is active; so excluding that case
   if (!isMotorDisabled && isMotorFault())
@@ -474,15 +497,17 @@ void loop() {
       delay(1000);
     }
   }
+  #endif
+  
+  //if pingSpeed time has passed, trigger new sonar ping
+  if (millis() >= pingTimer) {   // pingSpeed milliseconds since last ping, do another ping.
+      //recalibrate pingTimer - to avoid problems
+      pingTimer = millis()+pingSpeed;
+      getNextDistance();
+  }
+     
   
   #ifdef COLLISION_AVOIDANCE
-      //if pingSpeed time has passed, trigger new sonar ping
-      if (millis() >= pingTimer) {   // pingSpeed milliseconds since last ping, do another ping.
-        //recalibrate pingTimer - to avoid problems
-        pingTimer = millis()+pingSpeed;
-        getNextDistance();
-      }
-     
      //check whether we are stuck
      if (millis() >= stuckTimer){
          stuckTimer += STUCK_CHECK_DELAY;

@@ -12,6 +12,7 @@
 #define READ_ENCODERS  'e'
 #define MOTOR_SPEEDS   'm'
 #define PING           'p'
+#define PING_MEDIAN    'q'
 #define RESET_ENCODERS 'r'
 #define SERVO_WRITE    's'
 #define SERVO_READ     't'
