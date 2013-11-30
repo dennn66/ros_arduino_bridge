@@ -46,9 +46,9 @@ accel_limit: 1.0
 sensors: {
   motor_current_left:   {pin: 14, type: PololuMotorCurrent, rate: 1},
   motor_current_right:  {pin: 15, type: PololuMotorCurrent, rate: 5},
-  sonar_front_left:   {pin: 0, type: PointCloudPing, rate: 1, frame_id: /base_fl_sonar_link},
-  sonar_front_center:   {pin: 1, type: PointCloudPing, rate: 1, frame_id: /base_fc_sonar_link},
-  sonar_front_right:   {pin: 2, type: PointCloudPing, rate: 1, frame_id: /base_fr_sonar_link},
+  sonar_front_left:   {pin: 0, type: LaserScanPing, rate: 1, frame_id: /base_fl_sonar_link},
+  sonar_front_center:   {pin: 1, type: LaserScanPing, rate: 1, frame_id: /base_fc_sonar_link},
+  sonar_front_right:   {pin: 2, type: LaserScanPing, rate: 1, frame_id: /base_fr_sonar_link},
 #  sonar_front_left:   {pin: 11, type: PointCloudPing, rate: 1, frame_id: /base_fl_sonar_link},
 #  sonar_front_center:   {pin: 6, type: PointCloudPing, rate: 1, frame_id: /base_fc_sonar_link},
 #  sonar_front_right:   {pin: 5, type: PointCloudPing, rate: 1, frame_id: /base_fr_sonar_link},
