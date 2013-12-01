@@ -22,7 +22,7 @@
 import roslib; roslib.load_manifest('ros_arduino_python')
 import rospy
 from geometry_msgs.msg import Point32
-from sensor_msgs.msg import Range, LaserScan
+from sensor_msgs.msg import Range, PointCloud, LaserScan
 from ros_arduino_msgs.msg import *
 
 LOW = 0
@@ -31,7 +31,7 @@ HIGH = 1
 INPUT = 0
 OUTPUT = 1
 
-NUM_LASER_POINTS = 20
+NUM_SONAR_POINTS = 40
     
 class MessageType:
     ANALOG = 0
@@ -40,7 +40,8 @@ class MessageType:
     FLOAT = 3
     INT = 4
     BOOL = 5
-    LASERSCAN = 6
+    POINTCLOUD = 6
+    LASERSCAN = 7
     
 class Sensor(object):
     def __init__(self, controller, name, pin, rate, frame_id="/base_link", direction="input", **kwargs):
@@ -71,8 +72,19 @@ class Sensor(object):
             # For range sensors, assign the value to the range message field
             if self.message_type == MessageType.RANGE:
                 self.msg.range = self.value
+            elif self.message_type == MessageType.POINTCLOUD:
+                #empty list first
+                del self.msg.points[:]
+                #one sensor has a width of 30 degrees; i.e. formula for width of beam is 30/360 * 2*pi*distance ~= 0.6*distance
+                #number of points on sonar arc
+                for index in range(NUM_SONAR_POINTS):
+                   newPoint = Point32()
+                   newPoint.x = self.value
+                   newPoint.y = -self.value*0.3 + index*self.value*0.3/(NUM_SONAR_POINTS/2)
+                   newPoint.z = 0.0
+                   self.msg.points.append(newPoint) 
             elif self.message_type == MessageType.LASERSCAN: 
-                self.msg.ranges = [self.value] * NUM_LASER_POINTS
+                self.msg.ranges = [self.value] * NUM_SONAR_POINTS
             else:
                 self.msg.value = self.value
 
@@ -137,6 +149,20 @@ class DigitalSensor(Sensor):
         self.value = not self.value
         return self.controller.digital_write(self.pin, self.value)
 
+class PointCloudRangeSensor(Sensor):
+    def __init__(self, *args, **kwargs):
+        super(PointCloudRangeSensor, self).__init__(*args, **kwargs)
+        
+        self.message_type = MessageType.POINTCLOUD
+        
+        self.msg = PointCloud()
+        self.msg.header.frame_id = self.frame_id
+        self.msg.points = []
+        self.pub = rospy.Publisher("~sensor/" + self.name, PointCloud)
+        
+    def read_value(self):
+        self.msg.header.stamp = rospy.Time.now()
+
 class LaserScanRangeSensor(Sensor):
     def __init__(self, *args, **kwargs):
         super(LaserScanRangeSensor, self).__init__(*args, **kwargs)
@@ -147,10 +173,10 @@ class LaserScanRangeSensor(Sensor):
         #width of 30 degrees ~= 0.6 rads
         self.msg.angle_min = -0.3
         self.msg.angle_max = 0.3
-        self.msg.angle_increment = (self.msg.angle_max - self.msg.angle_min)/NUM_LASER_POINTS  #width / number of samples
+        self.msg.angle_increment = (self.msg.angle_max - self.msg.angle_min)/NUM_SONAR_POINTS  #width / number of samples
         self.msg.time_increment = 0.0
         self.msg.range_min = 0.0
-        self.msg.range_max = 0.35  #min range of kinect (0.45) - distance from sonars (~10)
+        self.msg.range_max = 0.61  #should be > MAX_DISTANCE (not >=!) in arduino firmware code
         self.msg.header.frame_id = self.frame_id
         self.pub = rospy.Publisher("~sensor/" + self.name, LaserScan)
         
@@ -203,6 +229,18 @@ class Ping(SonarSensor):
         
         return distance
     
+class PointCloudPing(PointCloudRangeSensor):
+    def __init__(self,*args, **kwargs):
+        super(PointCloudPing, self).__init__(*args, **kwargs)
+     
+    def read_value(self):
+        # The Arduino Ping code returns the distance in centimeters
+        cm = self.controller.ping_median(self.pin)
+        # Convert it to meters for ROS
+        distance = cm / 100.0
+
+        return distance
+
 class LaserScanPing(LaserScanRangeSensor):
     def __init__(self,*args, **kwargs):
         super(LaserScanPing, self).__init__(*args, **kwargs)

@@ -102,6 +102,8 @@ class ArduinoROS():
                 
             if params['type'] == "Ping":
                 sensor = Ping(self.controller, name, params['pin'], params['rate'], params['frame_id'])
+            elif params['type'] == "PointCloudPing":
+                sensor = PointCloudPing(self.controller, name, params['pin'], params['rate'], params['frame_id'])
             elif params['type'] == "LaserScanPing":
                 sensor = LaserScanPing(self.controller, name, params['pin'], params['rate'], params['frame_id'])
             elif params['type'] == "GP2D12":
