@@ -1,3 +1,7 @@
+Overview
+--------
+This branch (hydro-devel) is intended for ROS Hydro and above, and uses the Catkin buildsystem. It may also be compatible with ROS Groovy.
+
 This ROS stack includes an Arduino library (called ROSArduinoBridge) and a collection of ROS packages for controlling an Arduino-based robot using standard ROS messages and services.  The stack does **not** depend on ROS Serial.
 
 Features of the stack include:
@@ -104,10 +108,10 @@ and you should see a list of groups you belong to including dialout.
 Installation of the ros\_arduino\_bridge Stack
 ----------------------------------------------
 
-    $ cd ~/ros_workspace
+    $ cd ~/catkin_workspace/src
     $ git clone https://github.com/hbrobotics/ros_arduino_bridge.git
-    $ cd ros_arduino_bridge
-    $ rosmake
+    $ cd ~/catkin_workspace
+    $ catkin_make
 
 The provided Arduino library is called ROSArduinoBridge and is
 located in the ros\_arduino\_firmware package.  This sketch is
