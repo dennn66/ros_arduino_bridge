@@ -1,3 +1,22 @@
+IMPORTANT: motorfault detection and motor coasting stop requires patched dual-mc332926 motor library, see https://github.com/KristofRobot/dual-mc33926-motor-shield
+
+Extensions by Kristof Robot:
+
+ros_arduino_firmware:
+- DEBUG routines (incl. free ram detection, and logic analyzer debug pins)
+- WATCHDOG timer
+- Motorfault detection and motor coasting stop
+- Additional wheel encoder counter support:
+- Onboard wheel encoder counters
+- TinyQed wheel encoder counters
+- Two types of PID controllers (position and velocity)
+- Direct PWM motor command ('m')
+- Collision avoidance routine (to be run without ROS, and three sonars)
+
+ros_arduino-python:
+- Dynamic reconfigure support for PID parameter setting
+- PointCloud support for sonars
+
 Overview
 --------
 This branch (hydro-devel) is intended for ROS Hydro and above, and uses the Catkin buildsystem. It may also be compatible with ROS Groovy.
