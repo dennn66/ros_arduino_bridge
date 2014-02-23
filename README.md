@@ -2,20 +2,33 @@ IMPORTANT: motorfault detection and motor coasting stop requires patched dual-mc
 
 Extensions by Kristof Robot:
 
-ros_arduino_firmware:
+ros_arduino_firmware/src/libraries/ROSArduinoBridge:
 - DEBUG routines (incl. free ram detection, and logic analyzer debug pins)
 - WATCHDOG timer
 - Motorfault detection and motor coasting stop
 - Additional wheel encoder counter support:
-- Onboard wheel encoder counters
-- TinyQed wheel encoder counters
+	- Onboard wheel encoder counters
+	- TinyQed wheel encoder counters
 - Two types of PID controllers (position and velocity)
 - Direct PWM motor command ('m')
 - Collision avoidance routine (to be run without ROS, and three sonars)
 
+ros_arduino_firmware/src/libraries/ROSArduinoBridge_motor_only:
+- DEBUG routines (incl. free ram detection, and logic analyzer debug pins)
+- WATCHDOG timer
+- Motorfault detection and motor coasting stop
+- Onboard wheel encoder counters
+- Two types of PID controllers (position and velocity)
+- Removed SERVO code and commands
+- Removed Sensors code and commands
+- added SEND_PWM command
+
+
 ros_arduino-python:
 - Dynamic reconfigure support for PID parameter setting
 - PointCloud support for sonars
+
+
 
 Overview
 --------
