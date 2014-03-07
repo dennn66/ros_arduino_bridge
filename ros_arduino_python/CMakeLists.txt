@@ -3,12 +3,10 @@ project(ros_arduino_python)
 
 find_package(catkin REQUIRED COMPONENTS dynamic_reconfigure)
 catkin_python_setup()
-generate_dynamic_reconfigure_options(cfg/PID.cfg)
-catkin_package(CATKIN_DEPENDS dynamic_reconfigure)
 
-install(DIRECTORY cfg
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+generate_dynamic_reconfigure_options(cfg/PID.cfg)
+
+catkin_package(CATKIN_DEPENDS dynamic_reconfigure)
 
 install(DIRECTORY config
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
