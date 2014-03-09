@@ -48,6 +48,8 @@ class BaseController:
         pid_params['Kd'] = rospy.get_param("~Kd", 12)
         pid_params['Ki'] = rospy.get_param("~Ki", 0)
         pid_params['Ko'] = rospy.get_param("~Ko", 50)
+
+	self.use_robot_pose_ekf = rospy.get_param('~use_robot_pose_ekf', False)
         
         self.accel_limit = rospy.get_param('~accel_limit', 0.1)
         self.motors_reversed = rospy.get_param("~motors_reversed", False)
@@ -89,13 +91,18 @@ class BaseController:
         
         # Set up the odometry broadcaster
         self.odomPub = rospy.Publisher('odom', Odometry)
-        self.odomBroadcaster = TransformBroadcaster()
+        
+        if (not self.use_robot_pose_ekf):
+            #when using robot_pose_ekf, we should not provide odom tf transforms
+            self.odomBroadcaster = TransformBroadcaster()
 		
         # Enable dynamic reconfigure
         srv = Server(PIDConfig, self.reconfig)
 
         rospy.loginfo("Started base controller for a base of " + str(self.wheel_track) + "m wide with " + str(self.encoder_resolution) + " ticks per rev")
         rospy.loginfo("Publishing odometry data at: " + str(self.rate) + " Hz")
+        if (self.use_robot_pose_ekf):
+	    rospy.loginfo("Enabled robot_pose_ekf mode - not publishing odom tf transforms)
         
     def setup_pid(self, pid_params):
         # Check to see if any PID parameters are missing
@@ -165,19 +172,24 @@ class BaseController:
             quaternion.y = 0.0
             quaternion.z = sin(self.th / 2.0)
             quaternion.w = cos(self.th / 2.0)
-    
-            # Create the odometry transform frame broadcaster.
-            self.odomBroadcaster.sendTransform(
-                (self.x, self.y, 0), 
-                (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
-                rospy.Time.now(),
-                "base_link",
-                "odom"
-                )
+    		
+            if (not self.use_robot_pose_ekf):
+                # Create the odometry transform frame broadcaster.
+                self.odomBroadcaster.sendTransform(
+                    (self.x, self.y, 0), 
+                    (quaternion.x, quaternion.y, quaternion.z, quaternion.w),
+                    rospy.Time.now(),
+                    "base_link",
+                    "odom"
+                    )
     
             odom = Odometry()
-            odom.header.frame_id = "odom"
-            odom.child_frame_id = "base_link"
+
+            if (self.use_robot_pose_ekf):
+                odom.header.frame_id = "odom_combined" 
+            else:
+                odom.header.frame_id = "odom"            
+                odom.child_frame_id = "base_link"
             odom.header.stamp = now
             odom.pose.pose.position.x = self.x
             odom.pose.pose.position.y = self.y
