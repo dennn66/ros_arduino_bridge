@@ -13,6 +13,8 @@ sensorstate_rate: 10
 use_base_controller: False
 base_controller_rate: 10
 
+#publish_tf: False
+
 # === Robot drivetrain parameters
 #wheel_diameter: 0.146
 #wheel_track: 0.2969
