@@ -23,10 +23,13 @@ ros_arduino_firmware/src/libraries/ROSArduinoBridge_motor_only:
 - Removed Sensors code and commands
 - added SEND_PWM command
 
-
 ros_arduino-python:
 - Dynamic reconfigure support for PID parameter setting
 - PointCloud support for sonars
+- Support for robot_pose_ekf:
+	- Parameter to control publishing of odom tf transforms ('publish_tf')
+	- Non-zero values for odom.pose.covariance and odom.twist.covariance
+	- Transform between odom and base_footprint rather than base_link 
 
 
 
