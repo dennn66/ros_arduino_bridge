@@ -102,7 +102,7 @@ class BaseController:
         rospy.loginfo("Started base controller for a base of " + str(self.wheel_track) + "m wide with " + str(self.encoder_resolution) + " ticks per rev")
         rospy.loginfo("Publishing odometry data at: " + str(self.rate) + " Hz")
         if (self.use_robot_pose_ekf):
-	    rospy.loginfo("Enabled robot_pose_ekf mode - not publishing odom tf transforms)
+	    rospy.loginfo("Enabled robot_pose_ekf mode - not publishing odom tf transforms")
         
     def setup_pid(self, pid_params):
         # Check to see if any PID parameters are missing
