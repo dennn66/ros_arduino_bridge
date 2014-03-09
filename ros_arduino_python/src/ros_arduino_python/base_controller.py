@@ -187,6 +187,7 @@ class BaseController:
 
             if (self.use_robot_pose_ekf):
                 odom.header.frame_id = "odom_combined" 
+                odom.child_frame_id = "base_footprint"	
             else:
                 odom.header.frame_id = "odom"            
                 odom.child_frame_id = "base_link"
