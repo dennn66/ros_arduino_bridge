@@ -21,6 +21,7 @@
 
 import rospy
 from ros_arduino_python.arduino_driver import Arduino
+from ros_arduino_python.arduino_driver_over_ip import ArduinoOverIP
 from ros_arduino_python.arduino_sensors import *
 from ros_arduino_msgs.srv import *
 from ros_arduino_python.base_controller import BaseController
@@ -78,6 +79,7 @@ class ArduinoROS():
 
         # Initialize the controlller
         self.controller = Arduino(self.port, self.baud, self.timeout)
+        #self.controller = ArduinoOverIP("192.168.1.120", 2000, self.timeout)
         
         # Make the connection
         self.controller.connect()

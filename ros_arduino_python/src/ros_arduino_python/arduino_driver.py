@@ -26,8 +26,10 @@ from math import pi as PI, degrees, radians
 import os
 import time
 import sys, traceback
+import rospy
 from serial.serialutil import SerialException
 from serial import Serial
+
 
 SERVO_MAX = 180
 SERVO_MIN = 0
@@ -252,6 +254,13 @@ class Arduino:
         ''' Set the PID parameters on the Arduino
         '''
         print "Updating PID parameters"
+	rospy.loginfo("------------------------------------------------")        
+        rospy.loginfo("setup_pid: ")
+        rospy.loginfo("Kp: " + str(Kp))
+        rospy.loginfo("Kd: " + str(Kd))
+        rospy.loginfo("Ki: " + str(Ki))
+        rospy.loginfo("Ko: " + str(Ko))
+	rospy.loginfo("------------------------------------------------")
         cmd = 'u ' + str(Kp) + ':' + str(Kd) + ':' + str(Ki) + ':' + str(Ko)
         self.execute_ack(cmd)                          
 
@@ -267,6 +276,20 @@ class Arduino:
             raise SerialException
             return None
         else:
+	    '''rospy.loginfo("------------------------------------------------")        
+	    rospy.loginfo("e command: ")
+	    rospy.loginfo(values)
+	    rospy.loginfo("------------------------------------------------")
+	    '''
+            return values
+
+    def get_magneto(self):
+        values = self.execute_array('g')
+        if len(values) != 3:
+            print "Magneto axes count was not 3"
+            raise SerialException
+            return None
+        else:
             return values
 
     def reset_encoders(self):
@@ -276,7 +299,13 @@ class Arduino:
     
     def drive(self, right, left):
         ''' Speeds are given in encoder ticks per PID interval
-        '''
+        
+	rospy.loginfo("------------------------------------------------")        
+        rospy.loginfo("m command: ")
+        rospy.loginfo("right: " + str(right))
+        rospy.loginfo("left: " + str(left))
+	rospy.loginfo("------------------------------------------------")
+	'''
         return self.execute_ack('m %d %d' %(right, left))
     
     def drive_m_per_s(self, right, left):
@@ -345,7 +374,7 @@ class Arduino:
 """ Basic test for connectivity """
 if __name__ == "__main__":
     if os.name == "posix":
-        portName = "/dev/ttyACM0"
+        portName = "/dev/ttyUSB0"
     else:
         portName = "COM43" # Windows style COM port.
         

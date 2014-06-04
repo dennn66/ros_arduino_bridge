@@ -26,7 +26,7 @@ import os
 from dynamic_reconfigure.server import Server
 from ros_arduino_python.cfg import PIDConfig
 
-from math import sin, cos, pi
+from math import sin, cos, pi, atan2
 from geometry_msgs.msg import Quaternion, Twist, Pose
 from nav_msgs.msg import Odometry
 from tf.broadcaster import TransformBroadcaster
@@ -68,7 +68,10 @@ class BaseController:
         # Track how often we get a bad encoder count (if any)
         self.bad_encoder_count = 0
                         
-        now = rospy.Time.now()    
+	# Track how often we get a bad magneto count (if any)
+        self.bad_magneto_count = 0
+                
+	now = rospy.Time.now()    
         self.then = now # time for determining dx/dy
         self.t_delta = rospy.Duration(1.0 / self.rate)
         self.t_next = now + self.t_delta
@@ -101,6 +104,9 @@ class BaseController:
         srv = Server(PIDConfig, self.reconfig)
 
         rospy.loginfo("Started base controller for a base of " + str(self.wheel_track) + "m wide with " + str(self.encoder_resolution) + " ticks per rev")
+
+        rospy.loginfo("ticks_per_meter = " + str(self.ticks_per_meter) + " max_accel " + str(self.max_accel) + " ")
+
         rospy.loginfo("Publishing odometry data at: " + str(self.rate) + " Hz")
         if (self.publish_tf):
 	    rospy.loginfo("Publishing odom tf transforms")
@@ -125,7 +131,7 @@ class BaseController:
         self.Kd = pid_params['Kd']
         self.Ki = pid_params['Ki']
         self.Ko = pid_params['Ko']
-        
+
         self.arduino.update_pid(self.Kp, self.Kd, self.Ki, self.Ko)
 
     def poll(self):
@@ -139,10 +145,43 @@ class BaseController:
                 rospy.logerr("Encoder exception count: " + str(self.bad_encoder_count))
                 return
                             
+            # Read the magnetometr
+            try:
+                XAxis_magneto, YAxis_magneto, ZAxis_magneto = self.arduino.get_magneto()
+
+            except:
+                self.bad_magneto_count += 1
+                rospy.logerr("Magneto exception count: " + str(self.bad_magneto_count))
+                return
+                            
+
             dt = now - self.then
             self.then = now
             dt = dt.to_sec()
             
+	    print(str(XAxis_magneto)+";"+ str(YAxis_magneto)+";"+ str(ZAxis_magneto))
+
+	    #Calculate heading when the magnetometer is level, then correct for signs of axis.
+	    heading = atan2(YAxis_magneto, XAxis_magneto)
+
+	  
+	    #Once you have your heading, you must then add your "Declination Angle", 
+	    #which is the "Error" of the magnetic field in your location.
+	    #Find yours here: http://www.magnetic-declination.com/
+	    #Mine is:  0.0456752665 radians, I will use 0.0457
+	    #If you cannot find your Declination, comment out these two lines, your compass will be slightly off.
+	    declinationAngle = 0.0457
+	    heading += declinationAngle
+	  
+	    #Correct for when signs are reversed.
+	    if heading < 0:
+	    	heading += 2*pi
+	    
+	    #Check for wrap due to addition of declination.
+	    if heading > 2*pi:
+	    	heading -= 2*pi
+	    #rospy.loginfo("Heading: "+ str(heading)) 
+
             # calculate odometry
             if self.enc_left == None:
                 dright = 0
@@ -251,10 +290,12 @@ class BaseController:
             # Rotation about a point in space
             left = x - th * self.wheel_track  * self.gear_reduction / 2.0
             right = x + th * self.wheel_track  * self.gear_reduction / 2.0
-            
+
+    
         self.v_des_left = int(left * self.ticks_per_meter / self.arduino.PID_RATE)
         self.v_des_right = int(right * self.ticks_per_meter / self.arduino.PID_RATE)
-		
+	
+
     def reconfig(self, config, level):
         rospy.loginfo("""Reconfigure Request: {Kp}, {Ki}, {Kd}, {Ko}, {lin_x}, {ang_z}""".format(**config))
         self.Kp = config['Kp']
@@ -262,9 +303,13 @@ class BaseController:
         self.Ki = config['Ki']
         self.Ko = config['Ko']
 
+
+
         req =  Twist()
         req.linear.x = config['lin_x']         # m/s
         req.angular.z = config['ang_z']       # rad/s
+
+
         
         self.arduino.update_pid(self.Kp, self.Kd, self.Ki, self.Ko)
         self.cmdVelCallback(req)
