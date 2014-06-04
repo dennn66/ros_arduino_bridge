@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package>
+  <name>frobo_gazebo</name>
+  <version>1.0.0</version>
+  <description>frobo_gazebo provides a gazebo model of Frobo</description>
+
+  <author email="krirobo@gmail.com">Kristof Robot</author>
+  <maintainer email="krirobo@gmail.com">Kristof Robot</maintainer>
+  <license>BSD</license>
+  <url type="repository">https://github.com/KristofRobot/frobo</url>
+  <url type="bugtracker">https://github.com/KristofRobot/frobo/issues</url>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>urdf</run_depend>
+  <run_depend>xacro</run_depend>
+  <run_depend>frobo_description</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>gazebo_ros</run_depend>
+</package>
