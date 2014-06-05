@@ -1,9 +1,15 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:property name="ground_clearance" value="0.0150" />
-  <xacro:property name="level1_clearance" value="0.055" />
-  <xacro:property name="level2_clearance" value="0.135" />
+  <xacro:property name="ground_clearance" value="0.015" />
+  <xacro:property name="level1_width" value="0.225" />
+  <xacro:property name="level1_lenght" value="0.19" />
+  <xacro:property name="level1_radius" value="0.105" />
+  <xacro:property name="level1_box_offset_x" value="-0.11" />
+  <xacro:property name="level1_cylinder_offset_x" value="${0.15-level1_radius}" />
+
+  <xacro:property name="level1_clearance" value="0.05" />
+  <xacro:property name="level2_clearance" value="0.129" />
   <xacro:property name="level3_clearance" value="0.160" />
   <xacro:property name="wheel_offset_y" value="0.11750" />
   <xacro:property name="wheel_length" value="0.015" />
@@ -14,8 +20,13 @@
   <xacro:property name="base_collision_radius" value="0.20" />
   <xacro:property name="base_collision_top_clearance" value="0.10" />
   <xacro:property name="base_length" value="0.006" />
-  <xacro:property name="sonar_clearance" value="${level1_clearance+0.02}" />
-  <xacro:property name="sonar_angle" value="0.6" />
+  <xacro:property name="sonar_clearance" value="${level1_clearance+base_length+0.02}" />
+  <xacro:property name="sonar_angle_m" value="${M_PI/4}" />
+  <xacro:property name="sonar_angle" value="${M_PI/2}" />
+  <xacro:property name="level2_width" value="0.21" />
+  <xacro:property name="level2_lenght" value="0.13" />
+  <xacro:property name="level2_box_offset_x" value="-0.105" />
+  <xacro:property name="level2_cylinder_offset_x" value="${0.10-level1_radius}" />
 
 
   <!-- define a rotating wheel -->
@@ -72,7 +83,7 @@
   </xacro:macro>
 
   <!-- The xacro macro frobo_base contains: base and wheels -->
-  <xacro:macro name="frobo_base" params="color">
+  <xacro:macro name="frobo_base" params="color1 color2">
     <link name="base_footprint">
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -101,37 +112,58 @@
       <child link="base_link" />
     </joint>
     <link name="base_link">
+
       <visual>
-        <origin xyz="0 0 ${ground_clearance}" rpy="0 0 0" />
+        <origin xyz="${level1_lenght/2+level1_box_offset_x} 0 ${ground_clearance}" rpy="0 0 0" />
         <geometry>
-          <!-- <mesh filename="package://frobo_description/meshes/base.stl"  /> -->
-	  <cylinder radius="${base_radius}" length="${base_length}"/>
+          <box size="${level1_lenght} ${level1_width} ${base_length}"/>
         </geometry>
-        <material name="${color}" />
+        <material name="${color2}" />
       </visual>
+
       <visual>
-        <origin xyz="0 0 ${level1_clearance}" rpy="0 0 0" />
+        <origin xyz="0.015 0 ${ground_clearance+base_length+0.045}" rpy="0 0 0" />
         <geometry>
-	  <cylinder radius="${base_radius}" length="${base_length}"/>
+          <box size="0.065 0.09 0.1"/>
         </geometry>
-        <material name="${color}" />
+        <material name="${color1}" />
       </visual>
+
       <visual>
-        <origin xyz="0 0 ${level2_clearance}" rpy="0 0 0" />
+        <origin xyz="${level1_cylinder_offset_x} 0 ${ground_clearance}" rpy="0 0 0" />
         <geometry>
-	  <cylinder radius="${base_radius}" length="${base_length}"/>
+         
+	  <cylinder radius="${level1_radius}" length="${base_length}"/>
         </geometry>
-        <material name="${color}" />
+        <material name="${color2}" />
       </visual>
-<!--
+
       <visual>
-        <origin xyz="0 0 ${level3_clearance}" rpy="0 0 0" />
+        <origin xyz="${level1_cylinder_offset_x} 0 ${level1_clearance}" rpy="0 0 0" />
         <geometry>
-	  <cylinder radius="${base_radius}" length="${base_length}"/>
+         
+	  <cylinder radius="${level1_radius}" length="${base_length}"/>
         </geometry>
-        <material name="${color}" />
-      </visual> 
--->
+        <material name="${color2}" />
+      </visual>
+
+      <visual>
+        <origin xyz="${level2_lenght/2+level2_box_offset_x} 0 ${level2_clearance}" rpy="0 0 0" />
+        <geometry>
+          <box size="${level2_lenght} ${level2_width} ${base_length}"/>
+        </geometry>
+        <material name="${color2}" />
+      </visual>
+
+      <visual>
+        <origin xyz="${level2_cylinder_offset_x} 0 ${level2_clearance}" rpy="0 0 0" />
+        <geometry>
+         
+	  <cylinder radius="${level1_radius}" length="${base_length}"/>
+        </geometry>
+        <material name="${color2}" />
+      </visual>
+
       <!-- fixed wheels, without tf transform, just for visualization -->
       <visual>
         <origin xyz="0 ${1*wheel_offset_y} ${wheel_radius}" rpy="1.57 0 0" />
@@ -186,9 +218,11 @@
     <frobo_wheel parent="${name}" suffix="r" reflect="-1" color="Orange"/>-->
 
     <!-- sonars -->
-    <frobo_sonar parent="base" offset_x="0.115" offset_y="-0.055" angle="-${sonar_angle}" suffix="fr" color="Blue"/>
-    <frobo_sonar parent="base" offset_x="0.125" offset_y="0" angle="0" suffix="fc" color="Blue"/>
-    <frobo_sonar parent="base" offset_x="0.115" offset_y="0.055" angle="${sonar_angle}" suffix="fl" color="Blue"/>
+    <frobo_sonar parent="base" offset_x="0.060" offset_y="-0.1" angle="-${sonar_angle}" suffix="fr" color="Blue"/>
+    <frobo_sonar parent="base" offset_x="0.120" offset_y="-0.07" angle="-${sonar_angle_m}" suffix="fmr" color="Blue"/>
+    <frobo_sonar parent="base" offset_x="0.150" offset_y="0" angle="0" suffix="fc" color="Blue"/>
+    <frobo_sonar parent="base" offset_x="0.120" offset_y="0.07" angle="${sonar_angle_m}" suffix="fml" color="Blue"/>
+    <frobo_sonar parent="base" offset_x="0.060" offset_y="0.1" angle="${sonar_angle}" suffix="fl" color="Blue"/>
 	
   </xacro:macro>
 
