@@ -12,6 +12,9 @@
   //below can be changed, but should be PORTC pins
   #define RIGHT_ENC_PIN_A PC4  //pin A4
   #define RIGHT_ENC_PIN_B PC5   //pin A5
+#elif defined ARDUINO_NON_QUADRO_ENC_COUNTER
+  #define LEFT_ENC_PIN A4  
+  #define RIGHT_ENC_PIN A5  
 #endif
    
 long readEncoder(int i);

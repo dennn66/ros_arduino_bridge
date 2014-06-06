@@ -11,9 +11,9 @@
     </joint>
     <link name="uarm_link">
       <visual>
-        <origin xyz="0 0 0.137" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-           <cylinder radius="0.05" length="0.01"/>
+            <mesh filename="package://frobo_description/meshes/uarm_base.stl"/>
         </geometry>
         <material name="${color}" />
       </visual>

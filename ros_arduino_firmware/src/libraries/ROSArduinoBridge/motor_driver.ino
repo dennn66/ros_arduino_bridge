@@ -14,7 +14,10 @@
   #include "DualVNH5019MotorShield.h"
 
   /* Create the motor driver object */
-  DualVNH5019MotorShield drive;
+ // (unsigned char INA1, unsigned char INB1, unsigned char EN1DIAG1, unsigned char CS1, 
+ //  unsigned char INA2, unsigned char INB2, unsigned char EN2DIAG2, unsigned char CS2)
+  DualVNH5019MotorShield drive (INA1, INB1, EN1DIAG1, CS1, 
+  INA2, INB2, EN2DIAG2, CS2);
   
   /* Wrap the motor driver initialization */
   void initMotorController() {
