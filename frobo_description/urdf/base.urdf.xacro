@@ -17,7 +17,7 @@
   <xacro:property name="swivel_length" value="-0.019" />
   <xacro:property name="swivel_radius" value="0.018" />
   <xacro:property name="base_radius" value="0.16" />
-  <xacro:property name="base_collision_radius" value="0.20" />
+  <xacro:property name="base_collision_radius" value="0.15" />
   <xacro:property name="base_collision_top_clearance" value="0.10" />
   <xacro:property name="base_length" value="0.006" />
   <xacro:property name="sonar_clearance" value="${level1_clearance+base_length+0.02}" />
@@ -197,12 +197,14 @@
           <cylinder radius="${base_collision_radius}" length="${level2_clearance}"/>
         </geometry>
       </collision>
+<!--
       <collision>
         <origin xyz="0 0 ${level3_clearance+base_collision_top_clearance/2}" rpy="0 0 0" />
         <geometry>
           <cylinder radius="${base_collision_radius}" length="${base_collision_top_clearance}"/>
         </geometry>
       </collision> 
+-->
       <inertial>
         <origin xyz="0 0 ${base_radius}" rpy="0 0 0"/> 
         <mass value="5"/>

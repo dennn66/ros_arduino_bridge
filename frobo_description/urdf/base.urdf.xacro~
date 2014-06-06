@@ -17,7 +17,7 @@
   <xacro:property name="swivel_length" value="-0.019" />
   <xacro:property name="swivel_radius" value="0.018" />
   <xacro:property name="base_radius" value="0.16" />
-  <xacro:property name="base_collision_radius" value="0.20" />
+  <xacro:property name="base_collision_radius" value="0.15" />
   <xacro:property name="base_collision_top_clearance" value="0.10" />
   <xacro:property name="base_length" value="0.006" />
   <xacro:property name="sonar_clearance" value="${level1_clearance+base_length+0.02}" />
@@ -126,7 +126,7 @@
         <geometry>
           <box size="0.065 0.09 0.1"/>
         </geometry>
-        <material name="Black" />
+        <material name="${color1}" />
       </visual>
 
       <visual>
