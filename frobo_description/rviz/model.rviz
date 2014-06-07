@@ -9,8 +9,8 @@ Panels:
         - /RobotModel1
         - /RobotModel1/Links1
         - /RobotModel1/Links1/uarm_left_finger_link1
-        - /RobotModel1/Links1/uarm_palm_holder_link1
         - /RobotModel1/Links1/uarm_palm_link1
+        - /RobotModel1/Links1/uarm_upper_arm_link1
       Splitter Ratio: 0.85906
     Tree Height: 495
   - Class: rviz/Selection
@@ -116,11 +116,6 @@ Visualization Manager:
           Value: true
         uarm_left_finger_link:
           Alpha: 1
-          Show Axes: true
-          Show Trail: false
-          Value: true
-        uarm_palm_holder_link:
-          Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
@@ -135,6 +130,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         uarm_upper_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        uarm_wrist_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -208,17 +208,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.49098
+      Distance: 0.697978
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.06
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
       Focal Point:
         X: 0.0756612
         Y: -0.0358132
         Z: 0.224285
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: -0.0402028
+      Pitch: 0.0147963
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.1454
+      Yaw: 1.06041
     Saved: ~
 Window Geometry:
   Displays:
@@ -236,5 +241,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1215
-  X: 65
+  X: 58
   Y: 24

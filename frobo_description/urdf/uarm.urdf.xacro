@@ -19,13 +19,13 @@
       </visual>
     </link>
     <joint name="uarm_base_body_joint" type="continuous">
-      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <origin xyz="0 0 0" rpy="0 ${-M_PI/2} 0"/>
       <parent link="uarm_base_link"/>
       <child link="uarm_body_link"/>
     </joint>
     <link name="uarm_body_link">
       <visual>
-        <origin xyz="0 0 -0.01" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="0 ${M_PI/2} 0" />
         <geometry>
             <mesh filename="package://frobo_description/meshes/uarm_body.stl" scale="0.001 0.001 0.001"/>
         </geometry>
@@ -34,14 +34,15 @@
     </link>
 
     <joint name="uarm_body_upper_arm_joint" type="continuous">
-      <origin xyz="-0.02 0 0.07" rpy="0 0 0"/>
+      <origin xyz="0.069 0 0.021" rpy="-${M_PI/2} 0 ${-M_PI/2}"/>
       <parent link="uarm_body_link"/>
       <child link="uarm_upper_arm_link"/>
     </joint>
 
+
     <link name="uarm_upper_arm_link">
       <visual>
-        <origin xyz="0.02 0 -${0.07+0.01}" rpy="0 0 0" />
+        <origin xyz="0 0 ${0}" rpy="0 0 ${M_PI/2}" />
         <geometry>
             <mesh filename="package://frobo_description/meshes/uarm_upper_arm.stl" scale="0.001 0.001 0.001"/>
         </geometry>
@@ -51,13 +52,17 @@
 
 
     <joint name="uarm_upper_arm_forearm_joint" type="continuous">
-      <origin xyz="0.048 0 0.138" rpy="0 0 0"/>
+      <origin xyz="0 0.048 0.138 " rpy="0 0 0"/>
       <parent link="uarm_upper_arm_link"/>
       <child link="uarm_forearm_link"/>
     </joint>
+
+
+
+
    <link name="uarm_forearm_link">
       <visual>
-        <origin xyz="-${-0.02+0.048} 0 -${0.07+0.01+0.138}" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="0 0 ${M_PI/2}" />
         <geometry>
             <mesh filename="package://frobo_description/meshes/uarm_forearm.stl" scale="0.001 0.001 0.001"/>
         </geometry>
@@ -66,32 +71,34 @@
     </link>
 
     <joint name="uarm_forearm_palm_holder_joint" type="continuous">
-      <origin xyz="-0.145 0 -0.068" rpy="0 0 0"/>
+      <origin xyz="0 -0.145 -0.068" rpy="0 0 0"/>
       <parent link="uarm_forearm_link"/>
-      <child link="uarm_palm_holder_link"/>
+      <child link="uarm_wrist_link"/>
     </joint>
 
-    <link name="uarm_palm_holder_link">
+
+
+    <link name="uarm_wrist_link">
       <visual>
-        <origin xyz="${-(-0.02+0.048-0.145)} 0 ${-(0.07+0.01+0.138-0.068)}" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="0 0 ${M_PI/2}" />
         <geometry>
-            <mesh filename="package://frobo_description/meshes/uarm_palm_holder.stl" scale="0.001 0.001 0.001"/>
+            <mesh filename="package://frobo_description/meshes/uarm_wrist.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="${color}" />
       </visual>
     </link>
 
 
-    <joint name="palm_holder_palm_joint" type="continuous">
-      <origin xyz="-0.036 -0.0029 -0.011" rpy="0 0 0"/>
-      <parent link="uarm_palm_holder_link"/>
+    <joint name="wrist_palm_joint" type="continuous">
+      <origin xyz="0.0022 -0.036 -0.011" rpy=" ${-M_PI/2} ${M_PI/2} 0"/>
+      <parent link="uarm_wrist_link"/>
       <child link="uarm_palm_link"/>
     </joint>
 
 
     <link name="uarm_palm_link">
       <visual>
-        <origin xyz="0.009 0 0" rpy="${-M_PI/2} 0 ${M_PI/2}" />
+        <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${M_PI/2}" />
         <geometry>
             <mesh filename="package://frobo_description/meshes/uarm_palm.stl" scale="0.001 0.001 0.001"/>
         </geometry>
@@ -101,16 +108,17 @@
 
 
     <joint name="palm_left_finger_joint" type="continuous">
-      <origin xyz="0 -0.008 -0.035" rpy="0 0 0"/>
+      <origin xyz="0.035 -0.008 0 " rpy="0 ${M_PI/2} 0"/>
       <parent link="uarm_palm_link"/>
       <child link="uarm_left_finger_link"/>
     </joint>
 
 
 
+
     <link name="uarm_left_finger_link">
       <visual>
-        <origin xyz="0.009 0.008 0.035" rpy="${-M_PI/2} 0 ${M_PI/2}" />
+        <origin xyz="0 0 0" rpy="${-3*M_PI/2} 0 ${M_PI/2}" />
         <geometry>
             <mesh filename="package://frobo_description/meshes/uarm_left_finger.stl" scale="0.001 0.001 0.001"/>
         </geometry>
@@ -119,21 +127,31 @@
     </link>
 
     <joint name="palm_right_finger_joint" type="continuous">
-      <origin xyz="0 0.008 -0.035" rpy="0 0 0"/>
+      <origin xyz="0.035 0.008 0" rpy="0 ${M_PI/2} 0"/>
       <parent link="uarm_palm_link"/>
       <child link="uarm_right_finger_link"/>
     </joint>
 
     <link name="uarm_right_finger_link">
       <visual>
-        <origin xyz="0.009 -0.008 0.035" rpy="${-M_PI/2} 0 ${M_PI/2}" />
+        <origin xyz="0 0 0" rpy="${M_PI/2} 0 ${M_PI/2}" />
         <geometry>
             <mesh filename="package://frobo_description/meshes/uarm_right_finger.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="${color}" />
       </visual>
     </link>
-
+<!--
+    <link name="uarm_left_finger_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+            <box size="0.001 0.001 0.001"/>
+        </geometry>
+        <material name="${color}" />
+      </visual>
+    </link>
+-->
   </xacro:macro>
 
 </robot>
