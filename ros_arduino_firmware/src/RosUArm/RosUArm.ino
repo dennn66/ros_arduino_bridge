@@ -91,7 +91,7 @@ void loop()
 //#define JOINT_PALM_LEFT_FINGER      6     //
 
 for(int i=0; i< JOINTS_NUM; i++)
-  joint_state_msg.position[i] = (float)uarm_robot.getJointRot(i);
+  joint_state_msg.position[i] = 0.0; //(float)uarm_robot.getJointRot(i);
 
   joint_state_pub.publish(&joint_state_msg);
   nh.spinOnce();
