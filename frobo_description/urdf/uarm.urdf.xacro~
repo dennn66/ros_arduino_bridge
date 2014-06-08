@@ -27,7 +27,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 ${M_PI/2} 0" />
         <geometry>
-            <mesh filename="package://frobo_description/meshes/uarm_body1.stl" scale="0.001 0.001 0.001"/>
+            <mesh filename="package://frobo_description/meshes/uarm_body.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="${color}" />
       </visual>
@@ -44,7 +44,7 @@
       <visual>
         <origin xyz="0 0 ${0}" rpy="0 0 ${M_PI/2}" />
         <geometry>
-            <mesh filename="package://frobo_description/meshes/uarm_upper_arm1.stl" scale="0.001 0.001 0.001"/>
+            <mesh filename="package://frobo_description/meshes/uarm_upper_arm.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="${color}" />
       </visual>
@@ -64,7 +64,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 ${M_PI/2}" />
         <geometry>
-            <mesh filename="package://frobo_description/meshes/uarm_forearm1.stl" scale="0.001 0.001 0.001"/>
+            <mesh filename="package://frobo_description/meshes/uarm_forearm.stl" scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="${color}" />
       </visual>
