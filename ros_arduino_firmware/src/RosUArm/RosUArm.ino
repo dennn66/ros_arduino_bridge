@@ -1,10 +1,10 @@
 #include <ArduinoHardware.h>
 
 #include <ros.h>
-#include <string.h>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Bool.h>
-#include <uarm/Joints.h>
+#include <std_msgs/String.h>
+//#include <uarm/Joints.h>
 
 #include <Servo.h>
 #include <EEPROM.h>
@@ -29,8 +29,9 @@ void gripperCallback(const std_msgs::Bool &command) {
 
 */
 ros::NodeHandle nh;
-/*
+
 float positions[JOINTS_NUM] = {0.0};
+/*
 const char* names[] = {"uarm_base_body_joint", 
                         "uarm_body_upper_arm_joint",
                         "uarm_upper_arm_forearm_joint", 
@@ -44,6 +45,9 @@ const char* names[] = {"uarm_base_body_joint",
                                                    
 sensor_msgs::JointState joint_state_msg;
 ros::Publisher joint_state_pub("joint_states", &joint_state_msg);
+std_msgs::String str_msg;
+ros::Publisher chatter("chatter", &str_msg);
+char hello[13] = "hello world!";
 
 void setup() 
 {
@@ -62,8 +66,8 @@ void setup()
 	joint_state_msg.name[5] = "palm_left_finger_joint";
 	joint_state_msg.name[6] = "palm_right_finger_joint";
 //	joint_state_msg.position.resize(JOINTS_NUM);
-  for(int i=0; i< JOINTS_NUM; i++)
-    joint_state_msg.position[i] = 0.0;
+//  for(int i=0; i< JOINTS_NUM; i++)
+//    joint_state_msg.position[i] = 0.0;
  
 //	joint_state_msg.velocity.resize(JOINTS_NUM);
 //	joint_state_msg.effort.resize(JOINTS_NUM);
@@ -71,10 +75,11 @@ void setup()
 //  for(int i=0; i< JOINTS_NUM; i++){
 //    joint_state_msg.position[i] = (float)uarm_robot.getJointRot(i);
 //
-//  joint_state_msg.position = positions;
+  joint_state_msg.position = positions;
 //  joint_state_msg.name = names;
   nh.initNode();
-  nh.advertise(joint_state_pub);
+//  nh.advertise(joint_state_pub);
+    nh.advertise(chatter);
 //  nh.subscribe(gripper_sub);
 //  nh.subscribe(joint_sub);
   delay(500);
@@ -93,8 +98,12 @@ void loop()
 for(int i=0; i< JOINTS_NUM; i++)
   joint_state_msg.position[i] = 0.0; //(float)uarm_robot.getJointRot(i);
 
-  joint_state_pub.publish(&joint_state_msg);
+//  joint_state_pub.publish(&joint_state_msg);
+  
+    str_msg.data = hello;
+  chatter.publish( &str_msg );
+
   nh.spinOnce();
-  delay(100);
-  uarm_robot.gripperDetach();  
+  delay(10);
+//  uarm_robot.gripperDetach();  
 }
