@@ -70,7 +70,7 @@
       </visual>
     </link>
 
-    <joint name="uarm_forearm_palm_holder_joint" type="continuous">
+    <joint name="uarm_forearm_wrist_joint" type="continuous">
       <origin xyz="0 -0.145 -0.068" rpy="0 0 0"/>
       <parent link="uarm_forearm_link"/>
       <child link="uarm_wrist_link"/>
