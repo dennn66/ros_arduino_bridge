@@ -64,6 +64,9 @@
 #define WATCHDOG
 //#undef WATCHDOG
 
+
+
+
 #define USE_BASE      // Enable the base controller code
 //#undef USE_BASE     // Disable the base controller code
 
@@ -98,12 +101,12 @@
 //#undef USE_SERVOS     // Disable use of PWM servos
 
 /* Serial port baud rate */
-//#define BAUDRATE     57600
-#define BAUDRATE     115200
+#define BAUDRATE     57600
+//#define BAUDRATE     115200
 
 /* Maximum PWM signal */
 #define MAX_PWM        400
-#define MIN_PWM        130    //lowest PWM before motors start moving reliably
+#define MIN_PWM        63    //lowest PWM before motors start moving reliably
 
 
 
@@ -130,6 +133,127 @@
 #ifdef USE_SERVOS
    #include <Servo.h>
    #include "servos.h"
+
+#define SERVOL_MIN 951 
+#define SERVOL_MAX 2415 
+#define SERVOR_MIN 700 
+#define SERVOR_MAX 1800 
+#define SERVOROT_MIN 600 
+#define SERVOROT_MAX 2320 
+#define SERVOHAND_OPEN_MIN 890 
+#define SERVOHAND_CLOSE_MAX 1304 
+
+#define D150A_SERVO_MIN_PUL     535
+#define D150A_SERVO_MAX_PUL     2415
+#define D009A_SERVO_MIN_PUL     700
+#define D009A_SERVO_MAX_PUL     2650
+
+#define SERVO_L             0    //
+#define SERVO_R             1    //
+#define SERVO_ROT           2    //
+#define SERVO_HAND_ROT      3    //
+#define SERVO_HAND          4     //
+#define SERVO_CAMERA_ROT    5    //
+#define SERVO_CAMERA_TILT   6     //
+
+void setPositionMS(int _servoNum, int _position){
+  int positionMS;
+     if(servos[_servoNum].attached()){  
+	switch(_servoNum)
+	{
+		case SERVO_L:
+			_position = constrain(_position, SERVOL_MIN,   SERVOL_MAX);
+			break;
+		case SERVO_R:
+			_position = constrain(_position, SERVOR_MIN,   SERVOR_MAX);
+			break;
+		case SERVO_ROT:
+			_position = constrain(_position, SERVOROT_MIN,   SERVOROT_MAX);
+			break;
+		case SERVO_HAND_ROT:
+			_position = constrain(_position, D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
+			break;
+		case SERVO_HAND:
+			_position = constrain(_position, SERVOHAND_OPEN_MIN,   SERVOHAND_CLOSE_MAX);
+			break;
+		case SERVO_CAMERA_ROT:
+			_position = constrain(_position, D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
+			break;
+		case SERVO_CAMERA_TILT:
+			_position = constrain(_position, D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
+			break;
+		default: 
+			break;
+	}
+	servos[_servoNum].writeMicroseconds(_position);
+     }
+}    // 
+
+void setPositionDegree(int _servoNum, int _position){
+  int positionMS;
+	switch(_servoNum)
+	{
+		case SERVO_L:
+		case SERVO_R:
+		case SERVO_ROT:
+			positionMS = map(_position, 0, 180, D150A_SERVO_MIN_PUL, D150A_SERVO_MAX_PUL);
+			break;
+		case SERVO_HAND_ROT:
+		case SERVO_HAND:
+		case SERVO_CAMERA_ROT:
+		case SERVO_CAMERA_TILT:
+                        positionMS = map(_position, 0, 180, D009A_SERVO_MIN_PUL, D009A_SERVO_MAX_PUL); 
+			break;
+		default:  
+			break;
+	}
+	setPositionMS( _servoNum, positionMS);
+}    // 
+
+void servoAttach(int _servoNum, int state){
+  if(state == 1){
+	switch(_servoNum)
+	{
+		case SERVO_L:
+		case SERVO_R:
+		case SERVO_ROT:
+		        servos[_servoNum].attach(servoPins[_servoNum], D150A_SERVO_MIN_PUL, D150A_SERVO_MAX_PUL);
+			break;
+		case SERVO_HAND_ROT:
+		case SERVO_HAND:
+		case SERVO_CAMERA_ROT:
+		case SERVO_CAMERA_TILT:
+			servos[_servoNum].attach(servoPins[_servoNum], D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
+			break;
+		default:  
+			break;
+	}
+  } else if(state == 0) {
+        servos[_servoNum].detach();    
+  }
+}    //  
+
+float getPositionRAD(int _servoNum){
+  int positionMS;
+        positionMS = servos[_servoNum].readMicroseconds();
+	switch(_servoNum)
+	{
+		case SERVO_L:
+		case SERVO_R:
+		case SERVO_ROT:
+			return map(servos[_servoNum].readMicroseconds(),D150A_SERVO_MIN_PUL,  D150A_SERVO_MAX_PUL, -PI/2, PI/2);
+			break;
+		case SERVO_HAND_ROT:
+		case SERVO_HAND:
+		case SERVO_CAMERA_ROT:
+		case SERVO_CAMERA_TILT:
+			return map(servos[_servoNum].readMicroseconds(), D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL, -PI/2, PI/2);
+			break;
+		default:  
+			break;
+	}
+}
+
 #endif
 
 #ifdef USE_BASE
@@ -240,12 +364,52 @@ int runCommand() {
     break;
 #ifdef USE_SERVOS
   case SERVO_WRITE:
-    servos[arg1].write(arg2);
+    setPositionDegree(arg1, arg2);
     Serial.println("OK");
     break;
   case SERVO_READ:
     Serial.println(servos[arg1].read());
     break;
+  case ALL_SERVO_READ:
+    for (i = 0; i < N_SERVOS; i++) {
+       Serial.print(servos[i].read());
+       Serial.print(" ");
+    }
+    Serial.println("");
+    break;
+  case ALL_SERVO_STATE:
+    for (i = 0; i < N_SERVOS; i++) {
+       Serial.print(servos[i].attached());
+       Serial.print(" ");
+    }
+    Serial.println("");
+    break;
+  case ALL_SERVO_WRITE:
+    while ((str = strtok_r(p, ":", &p)) != '\0') {
+       if(strlen(str) >0) setPositionDegree(i, atoi(str));
+       i++;
+    }
+    Serial.println("OK");
+    break;
+
+    for (i = 0; i < N_SERVOS; i++) {
+       Serial.print(servos[i].attached());
+       Serial.print(" ");
+    }
+    Serial.println("");
+    break;
+  case SERVO_ATTACH:
+    servoAttach(arg1, arg2);
+    Serial.println("OK");
+    break;
+  case ALL_SERVO_ATTACH:
+    //int i;
+    for (i = 0; i < N_SERVOS; i++) {
+       servoAttach(i, arg1);
+    }
+    Serial.println("OK");
+    break;
+
 #endif
     
 #ifdef USE_BASE
@@ -332,12 +496,16 @@ int runCommand() {
 void setup() {
   
   Serial.begin(BAUDRATE);
+//  Serial1.begin(BAUDRATE);
   
 #ifdef DEBUG
-  Serial.println("Starting up...");
-  pinMode(A2, OUTPUT); //cpu measurement pin for logic analyzer
-  pinMode(A3, OUTPUT); //PID frequency measurement pin for logic analyzer
-  Serial.println("CPU and PID frequency measurement PINs active.");
+  Serial1.println("Starting up...");
+  pinMode(40, OUTPUT); //cpu measurement pin for logic analyzer
+  pinMode(41, OUTPUT); //PID frequency measurement pin for logic analyzer
+  pinMode(42, OUTPUT); //left encoder
+  pinMode(43, OUTPUT); //right encoder
+
+  Serial1.println("CPU and PID frequency measurement PINs active.");
 #endif
 
 // Initialize the motor controller if used */
@@ -389,17 +557,22 @@ void setup() {
     
     bucketTimer=millis();
     
-    if (ENABLE_DEBUG) Serial.println("Collision Setup Ready");
+    if (ENABLE_DEBUG) Serial1.println("Collision Setup Ready");
   #endif
   
 #endif
 
 /* Attach servos if used */
 #ifdef USE_SERVOS
-  int i;
-  for (i = 0; i < N_SERVOS; i++) {
-    servos[i].attach(servoPins[i]);
-  }
+
+  for (int i = 0; i < N_SERVOS; i++) servoAttach(i,1);  
+  for (int i = 0; i < N_SERVOS; i++) setPositionDegree(i, 90);
+  delay(1500);
+  setPositionDegree(0, 170);
+  setPositionDegree(1, 45);
+  delay(1500);  
+  for (int i = 0; i < N_SERVOS; i++) servoAttach(i,0);
+  
 #endif
 
 #ifdef WATCHDOG
@@ -408,8 +581,8 @@ void setup() {
 #endif
 
 #ifdef DEBUG
-    Serial.print("Free Mem:");
-    Serial.println(freeRam());
+    Serial1.print("Free Mem:");
+    Serial1.println(freeRam());
 #endif
 
 }
@@ -473,7 +646,8 @@ void loop() {
   if (millis() > nextPID) {
     nextPID = millis() + PID_INTERVAL;
   #ifdef DEBUG
-    PINC = (1<<PC3);   //toggle for PID interval measurement with logic analyzer, pin A3
+     digitalWrite(41, HIGH - digitalRead(41));
+//    PINC = (1<<PC3);   //toggle for PID interval measurement with logic analyzer, pin A3
   #endif
     updatePID();
   }
@@ -534,7 +708,8 @@ void loop() {
   
   #ifdef DEBUG
     //toggle cpu measurement for logic analyzer on pin 5
-    PINC = (1<<PC2); //pin A2
+    //PINC = (1<<PC2); //pin A2
+    digitalWrite(40, HIGH - digitalRead(40));
   #endif
 
 #endif
