@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<package>
+  <name>tom_smach</name>
+  <version>1.0.0</version>
+  <description>
+     tom_smach provides a state mach
+ </description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag --> 
+  <!-- Example:  -->
+  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+  <maintainer email="dennn@e1.ru">dennn66</maintainer>
+
+
+  <license>BSD</license>
+
+  <!-- Url tags are optional, but mutiple are allowed, one per tag -->
+  <!-- Optional attribute type can be: website, bugtracker, or repository -->
+  <!-- Example: -->
+<url type="UFactory repositories">https://github.com/UFactory</url> 
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roslib</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>smach</build_depend>
+  <build_depend>smach_ros</build_depend>
+  <run_depend>roslib</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>smach</run_depend>
+  <run_depend>smach_ros</run_depend>
+
+
+</package>

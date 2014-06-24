@@ -5,6 +5,8 @@ find_package(catkin REQUIRED genmsg std_msgs)
 
 add_message_files(FILES
                   AnalogFloat.msg
+                  Joints.msg
+                  CameraJoints.msg
                   Analog.msg
                   Digital.msg
                   SensorState.msg
@@ -15,6 +17,8 @@ add_service_files(FILES
                   DigitalWrite.srv
                   ServoRead.srv
                   ServoWrite.srv
+                  UarmPark.srv
+                  CameraPark.srv
                  )
 
 generate_messages(DEPENDENCIES std_msgs)

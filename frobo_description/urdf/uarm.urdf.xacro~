@@ -18,7 +18,7 @@
         <material name="${color}" />
       </visual>
     </link>
-    <joint name="uarm_base_body_joint" type="continuous">
+    <joint name="base_body_j" type="continuous">
       <origin xyz="0 0 0" rpy="0 ${-M_PI/2} 0"/>
       <parent link="uarm_base_link"/>
       <child link="uarm_body_link"/>
@@ -33,7 +33,7 @@
       </visual>
     </link>
 
-    <joint name="uarm_body_upper_arm_joint" type="continuous">
+    <joint name="body_upper_arm_j" type="continuous">
       <origin xyz="0.069 0 0.021" rpy="-${M_PI/2} 0 ${-M_PI/2}"/>
       <parent link="uarm_body_link"/>
       <child link="uarm_upper_arm_link"/>
@@ -51,7 +51,7 @@
     </link>
 
 
-    <joint name="uarm_upper_arm_forearm_joint" type="continuous">
+    <joint name="upper_arm_forearm_j" type="continuous">
       <origin xyz="0 0.048 0.138 " rpy="0 0 0"/>
       <parent link="uarm_upper_arm_link"/>
       <child link="uarm_forearm_link"/>
@@ -70,8 +70,8 @@
       </visual>
     </link>
 
-    <joint name="uarm_forearm_wrist_joint" type="continuous">
-      <origin xyz="0 -0.145 -0.068" rpy="0 0 0"/>
+    <joint name="forearm_wrist_j" type="continuous">
+      <origin xyz="0 -0.145 -0.068" rpy="$0 0 0"/>
       <parent link="uarm_forearm_link"/>
       <child link="uarm_wrist_link"/>
     </joint>
@@ -89,7 +89,7 @@
     </link>
 
 
-    <joint name="wrist_palm_joint" type="continuous">
+    <joint name="wrist_palm_j" type="continuous">
       <origin xyz="0.0022 -0.036 -0.011" rpy=" ${-M_PI/2} ${M_PI/2} 0"/>
       <parent link="uarm_wrist_link"/>
       <child link="uarm_palm_link"/>
@@ -107,7 +107,7 @@
     </link>
 
 
-    <joint name="palm_left_finger_joint" type="continuous">
+    <joint name="palm_left_finger_j" type="continuous">
       <origin xyz="0.035 -0.008 0 " rpy="0 ${M_PI/2} 0"/>
       <parent link="uarm_palm_link"/>
       <child link="uarm_left_finger_link"/>
@@ -126,7 +126,7 @@
       </visual>
     </link>
 
-    <joint name="palm_right_finger_joint" type="continuous">
+    <joint name="palm_right_finger_j" type="continuous">
       <origin xyz="0.035 0.008 0" rpy="0 ${M_PI/2} 0"/>
       <parent link="uarm_palm_link"/>
       <child link="uarm_right_finger_link"/>

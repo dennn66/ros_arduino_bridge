@@ -43,9 +43,9 @@ class NavSquare():
         r = rospy.Rate(rate)
         
         # Set the parameters for the target square
-        goal_distance = rospy.get_param("~goal_distance", 1.20)      # meters
+        goal_distance = rospy.get_param("~goal_distance", 0.20)      # meters
         goal_angle = rospy.get_param("~goal_angle", radians(90))    # degrees converted to radians
-        linear_speed = rospy.get_param("~linear_speed", 0.1)        # meters per second
+        linear_speed = rospy.get_param("~linear_speed", 0.8)        # meters per second
         angular_speed = rospy.get_param("~angular_speed", 1.0)      # radians per second
         angular_tolerance = rospy.get_param("~angular_tolerance", radians(0)) # degrees to radians
         

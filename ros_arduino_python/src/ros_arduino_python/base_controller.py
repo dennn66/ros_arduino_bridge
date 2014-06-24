@@ -26,12 +26,14 @@ import os
 from dynamic_reconfigure.server import Server
 from ros_arduino_python.cfg import PIDConfig
 
-from math import sin, cos, pi, atan2
+from math import sin, cos, pi, atan2, radians
 from geometry_msgs.msg import Quaternion, Twist, Pose
 from nav_msgs.msg import Odometry
 from tf.broadcaster import TransformBroadcaster
 
+
 from ros_arduino_python.covariances import ODOM_POSE_COVARIANCE, ODOM_TWIST_COVARIANCE
+
  
 """ Class to receive Twist commands and publish Odometry data """
 class BaseController:
@@ -99,7 +101,7 @@ class BaseController:
         
         if (self.publish_tf):
             self.odomBroadcaster = TransformBroadcaster()
-		
+
         # Enable dynamic reconfigure
         srv = Server(PIDConfig, self.reconfig)
 
@@ -159,7 +161,7 @@ class BaseController:
             self.then = now
             dt = dt.to_sec()
             
-	    print(str(XAxis_magneto)+";"+ str(YAxis_magneto)+";"+ str(ZAxis_magneto))
+	    #print(str(XAxis_magneto)+";"+ str(YAxis_magneto)+";"+ str(ZAxis_magneto))
 
 	    #Calculate heading when the magnetometer is level, then correct for signs of axis.
 	    heading = atan2(YAxis_magneto, XAxis_magneto)
@@ -239,6 +241,8 @@ class BaseController:
             odom.twist.twist.angular.z = vth
 
             self.odomPub.publish(odom)
+
+
             
             if now > (self.last_cmd_vel + rospy.Duration(self.timeout)):
                 self.v_des_left = 0
@@ -267,7 +271,7 @@ class BaseController:
                 self.arduino.drive(self.v_left, self.v_right)
                 
             self.t_next = now + self.t_delta
-            
+
     def stop(self):
         self.stopped = True
         self.arduino.drive(0, 0)
@@ -295,7 +299,6 @@ class BaseController:
         self.v_des_left = int(left * self.ticks_per_meter / self.arduino.PID_RATE)
         self.v_des_right = int(right * self.ticks_per_meter / self.arduino.PID_RATE)
 	
-
     def reconfig(self, config, level):
         rospy.loginfo("""Reconfigure Request: {Kp}, {Ki}, {Kd}, {Ko}, {lin_x}, {ang_z}""".format(**config))
         self.Kp = config['Kp']

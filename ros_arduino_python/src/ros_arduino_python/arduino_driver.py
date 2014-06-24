@@ -253,14 +253,6 @@ class Arduino:
     def update_pid(self, Kp, Kd, Ki, Ko):
         ''' Set the PID parameters on the Arduino
         '''
-        print "Updating PID parameters"
-	rospy.loginfo("------------------------------------------------")        
-        rospy.loginfo("setup_pid: ")
-        rospy.loginfo("Kp: " + str(Kp))
-        rospy.loginfo("Kd: " + str(Kd))
-        rospy.loginfo("Ki: " + str(Ki))
-        rospy.loginfo("Ko: " + str(Ko))
-	rospy.loginfo("------------------------------------------------")
         cmd = 'u ' + str(Kp) + ':' + str(Kd) + ':' + str(Ki) + ':' + str(Ko)
         self.execute_ack(cmd)                          
 
@@ -276,11 +268,6 @@ class Arduino:
             raise SerialException
             return None
         else:
-	    '''rospy.loginfo("------------------------------------------------")        
-	    rospy.loginfo("e command: ")
-	    rospy.loginfo(values)
-	    rospy.loginfo("------------------------------------------------")
-	    '''
             return values
 
     def get_magneto(self):
@@ -292,6 +279,7 @@ class Arduino:
         else:
             return values
 
+
     def reset_encoders(self):
         ''' Reset the encoder counts to 0
         '''
@@ -299,12 +287,6 @@ class Arduino:
     
     def drive(self, right, left):
         ''' Speeds are given in encoder ticks per PID interval
-        
-	rospy.loginfo("------------------------------------------------")        
-        rospy.loginfo("m command: ")
-        rospy.loginfo("right: " + str(right))
-        rospy.loginfo("left: " + str(left))
-	rospy.loginfo("------------------------------------------------")
 	'''
         return self.execute_ack('m %d %d' %(right, left))
     
@@ -343,8 +325,49 @@ class Arduino:
         ''' Usage: servo_write(id, pos)
             Position is given in radians and converted to degrees before sending
         '''        
+        print "Servo write "+ str(id)+ " "+ str(pos)
+
         return self.execute_ack('s %d %d' %(id, min(SERVO_MAX, max(SERVO_MIN, degrees(pos)))))
-    
+    def servo_set_pos(self, id, pos):
+        ''' Usage: servo_write(id, pos)
+            Position is given in degrees
+        '''        
+        print "Servo set_pos "+ str(id)+ " "+ str(pos)
+
+        return self.execute_ack('s %d %d' %(id, min(SERVO_MAX, max(SERVO_MIN, pos))))
+
+    def set_all_servo_pos(self, servoL, servoR, servoRot, servoHandRot, servoHand, servoCameraRot, servoCameraTilt):
+        ''' Set the Servo pos in degree on the Arduino
+        '''
+        cmd = 'k ' + str(servoL) + ':' + str(servoR) + ':' + str(servoRot) + ':' + str(servoHandRot) + ':' + str(servoHand) + ':' + str(servoCameraRot) + ':' + str(servoCameraTilt)
+        self.execute_ack(cmd)                          
+
+    def set_servo_attach(self, servo_num, state):
+        ''' attach/detach servo on the Arduino
+        '''
+ 
+        cmd = 'h ' + str(servo_num) + ' ' + str(state)
+        print "Servo command: "+ cmd
+
+        self.execute_ack(cmd)                          
+    def get_servos_state(self):
+        values = self.execute_array('j')
+        if len(values) != 7:
+            print "Servos count was not 7"
+            raise SerialException
+            return None
+        else:
+            return values
+    def get_servos_pos(self):
+        values = self.execute_array('f')
+        if len(values) != 7:
+            print "Servos count was not 7"
+            raise SerialException
+            return None
+        else:
+            return values
+
+
     def servo_read(self, id):
         ''' Usage: servo_read(id)
             The returned position is converted from degrees to radians

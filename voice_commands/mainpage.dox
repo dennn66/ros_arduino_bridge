@@ -1,0 +1,18 @@
+/**
+\mainpage
+\htmlinclude manifest.html
+
+\b voice_commands 
+
+<!-- 
+Provide an overview of your package.
+sudo apt-get install ros-hydro-pocketsphinx
+rospack find pocketsphinx
+sudo apt-get install python-gst0.10
+
+-->
+
+-->
+
+
+*/

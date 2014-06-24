@@ -25,6 +25,8 @@ from ros_arduino_python.arduino_driver_over_ip import ArduinoOverIP
 from ros_arduino_python.arduino_sensors import *
 from ros_arduino_msgs.srv import *
 from ros_arduino_python.base_controller import BaseController
+from ros_arduino_python.uarm_controller import UarmController
+from ros_arduino_python.camera_controller import CameraController
 from geometry_msgs.msg import Twist
 import os, time
 import thread
@@ -49,6 +51,8 @@ class ArduinoROS():
         self.sensorstate_rate = int(rospy.get_param("~sensorstate_rate", 10))
         
         self.use_base_controller = rospy.get_param("~use_base_controller", False)
+        self.use_uarm_controller = rospy.get_param("~use_uarm_controller", False)
+        self.use_camera_controller = rospy.get_param("~use_camera_controller", False)
         
         # Set up the time for publishing the next SensorState message
         now = rospy.Time.now()
@@ -77,8 +81,9 @@ class ArduinoROS():
         # A service to turn a digital sensor on or off
         rospy.Service('~digital_write', DigitalWrite, self.DigitalWriteHandler)
 
-        # Initialize the controlller
+        # Initialize the controller
         self.controller = Arduino(self.port, self.baud, self.timeout)
+        #self.controller = ArduinoOverIP("192.168.1.120", 2000, self.timeout)
         
         # Make the connection
         self.controller.connect()
@@ -116,6 +121,10 @@ class ArduinoROS():
                 sensor = PhidgetsVoltage(self.controller, name, params['pin'], params['rate'])
             elif params['type'] == 'PhidgetsCurrent':
                 sensor = PhidgetsCurrent(self.controller, name, params['pin'], params['rate'])
+            elif params['type'] == 'CustomVoltage':
+                sensor = CustomVoltage(self.controller, name, params['pin'], params['rate'])
+            elif params['type'] == 'CustomCurrent':
+                sensor = CustomCurrent(self.controller, name, params['pin'], params['rate'])
                 
 #                if params['type'] == "MaxEZ1":
 #                    self.sensors[len(self.sensors)]['trigger_pin'] = params['trigger_pin']
@@ -127,6 +136,13 @@ class ArduinoROS():
         # Initialize the base controller if used
         if self.use_base_controller:
             self.myBaseController = BaseController(self.controller)
+        # Initialize the uarm controller if used
+        if self.use_uarm_controller:
+            self.myUarmController = UarmController(self.controller)
+
+        # Initialize the camera controller if used
+        if self.use_camera_controller:
+            self.myCameraController = CameraController(self.controller)
     
         # Start polling the sensors and base controller
         while not rospy.is_shutdown():
@@ -138,6 +154,16 @@ class ArduinoROS():
             if self.use_base_controller:
                 mutex.acquire()
                 self.myBaseController.poll()
+                mutex.release()
+
+            if self.use_uarm_controller:
+                mutex.acquire()
+                self.myUarmController.poll()
+                mutex.release()
+            
+            if self.use_camera_controller:
+                mutex.acquire()
+                self.myCameraController.poll()
                 mutex.release()
             
             # Publish all sensor values on a single topic for convenience
