@@ -81,12 +81,13 @@ void DualMC33926MotorShield::setM1Speed(int speed)
     digitalWrite(_M1DIR,LOW);
   } 
   #else
-  if (reverse)
+  if (reverse){
     digitalWrite(_M1DIR,HIGH);
-  analogWrite(_M1PWM, 255 - speed * 51 / 80); // default to using analogWrite, mapping 400 to 255
-  else
+    analogWrite(_M1PWM, 255 - speed * 51 / 80); // default to using analogWrite, mapping 400 to 255
+  }else{
     digitalWrite(_M1DIR,LOW);
-  analogWrite(_M1PWM,speed * 51 / 80); // default to using analogWrite, mapping 400 to 255
+    analogWrite(_M1PWM,speed * 51 / 80); // default to using analogWrite, mapping 400 to 255
+  }
   #endif
 
 }

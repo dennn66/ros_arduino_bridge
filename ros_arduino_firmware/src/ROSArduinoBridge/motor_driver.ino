@@ -84,8 +84,11 @@
     return 0;
   }
  int getMotorDirection(int i){
-       if (i == LEFT) return left_direction;
-    else return right_direction;
+      if (i == LEFT) {
+        return left_direction;
+      } else {
+        return right_direction;
+      }
  };  
  #endif
 

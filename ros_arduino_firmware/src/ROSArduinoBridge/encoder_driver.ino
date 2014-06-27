@@ -102,8 +102,9 @@
   
 
   void leftEncoderTick(){
-    left_enc_pos += getMotorDirection(LEFT);
+    left_enc_pos += getMotorDirection(LEFT);  
   }
+  
   void rightEncoderTick(){
     right_enc_pos += getMotorDirection(RIGHT);
   }  
