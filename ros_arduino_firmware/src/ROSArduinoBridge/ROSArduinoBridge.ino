@@ -64,7 +64,38 @@
 #define WATCHDOG
 //#undef WATCHDOG
 
+#ifdef WATCHDOG
+  #include <avr/wdt.h>
+#endif
 
+#undef PIEZOBUZZER
+
+#ifdef PIEZOBUZZER
+#define BUZZER                  44     //
+#define BUZZER_GND              42     //
+
+void alert(int _times, int _runTime, int _stopTime)
+{
+    for(int _ct=0; _ct < _times; _ct++)
+    {
+      delay(_stopTime);
+      analogWrite(BUZZER, 20);      // Almost any value can be used except 0 and 255
+      delay(_runTime);
+      analogWrite(BUZZER, 0);       // 0 turns it off
+    }
+}
+#endif
+
+#define CHECKPOWER
+
+#ifdef CHECKPOWER
+#define ROBOTVOLTAGE            A0       //
+
+// Convert the rate into an interval 
+const int CHECKPOWER_INTERVAL = 30000;
+//Track the next time we make a PID calculation
+unsigned long nextCHECKPOWER = CHECKPOWER_INTERVAL;
+#endif
 
 
 #define USE_BASE      // Enable the base controller code
@@ -106,7 +137,7 @@
 
 /* Maximum PWM signal */
 #define MAX_PWM        400
-#define MIN_PWM        63    //lowest PWM before motors start moving reliably
+#define MIN_PWM        100    //lowest PWM before motors start moving reliably
 
 
 
@@ -118,10 +149,6 @@
 
 /* Arduino Leonardo Serial1 */
 //#define Serial Serial1
-
-#ifdef WATCHDOG
-  #include <avr/wdt.h>
-#endif
 
 /* Include definition of serial commands */
 #include "commands.h"
@@ -183,6 +210,7 @@ void setPositionMS(int _servoNum, int _position){
 			_position = constrain(_position, D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
 			break;
 		default: 
+			_position = constrain(_position, D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
 			break;
 	}
 	servos[_servoNum].writeMicroseconds(_position);
@@ -190,7 +218,7 @@ void setPositionMS(int _servoNum, int _position){
 }    // 
 
 void setPositionDegree(int _servoNum, int _position){
-  int positionMS;
+  int positionMS = 1500;
 	switch(_servoNum)
 	{
 		case SERVO_L:
@@ -226,6 +254,7 @@ void servoAttach(int _servoNum, int state){
 			servos[_servoNum].attach(servoPins[_servoNum], D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
 			break;
 		default:  
+			servos[_servoNum].attach(servoPins[_servoNum], D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
 			break;
 	}
   } else if(state == 0) {
@@ -250,7 +279,8 @@ float getPositionRAD(int _servoNum){
 			return map(servos[_servoNum].readMicroseconds(), D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL, -PI/2, PI/2);
 			break;
 		default:  
-			break;
+			return 0;
+                        break;
 	}
 }
 
@@ -497,6 +527,12 @@ void setup() {
   
   Serial.begin(BAUDRATE);
 //  Serial1.begin(BAUDRATE);
+#ifdef PIEZOBUZZER
+  pinMode(BUZZER,   OUTPUT); digitalWrite(BUZZER,   LOW);
+  pinMode(BUZZER_GND,   OUTPUT); digitalWrite(BUZZER_GND,   LOW);
+  alert(1, 200, 0);
+#endif
+
   
 #ifdef DEBUG
   Serial1.println("Starting up...");
@@ -538,9 +574,11 @@ void setup() {
     attachInterrupt(0, rightEncoderTick, RISING); //pin 2
     attachInterrupt(1, leftEncoderTick, RISING); //pin 3
   #endif
+  
   #ifdef MAGNETO_HMC5883L
   initMC5883L();
   #endif
+  
   initMotorController();
   //init PID
   setPIDParams(INIT_KP, INIT_KD, INIT_KI, INIT_KO, PID_RATE);
@@ -666,6 +704,30 @@ void loop() {
     moving = 0;
   }
   #endif
+  
+#ifdef CHECKPOWER
+  if (millis() > nextCHECKPOWER) {
+#ifdef PIEZOBUZZER
+  pinMode(BUZZER,   OUTPUT); digitalWrite(BUZZER,   LOW);
+  pinMode(BUZZER_GND,   OUTPUT); digitalWrite(BUZZER_GND,   LOW);
+  analogWrite(BUZZER, 20);      // Almost any value can be used except 0 and 255
+  wdt_reset();
+  delay(300);
+  wdt_reset();
+  analogWrite(BUZZER, 0);       // 0 turns it off
+#endif
+ 
+    nextCHECKPOWER = millis() + CHECKPOWER_INTERVAL;
+    float rv;
+    rv = analogRead(ROBOTVOLTAGE)*0.0248;
+    Serial.println(rv);
+    if(rv < 15.00){
+      Serial.println("LOW");
+      servos[7].attach(servoPins[7], D009A_SERVO_MIN_PUL,   D009A_SERVO_MAX_PUL);
+      servos[7].write(90);
+    }
+  }
+#endif
   
   //detect motor faults
   //if motor is disabled, motor fault is active; so excluding that case
