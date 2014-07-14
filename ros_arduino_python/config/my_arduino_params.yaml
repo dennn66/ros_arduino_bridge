@@ -3,7 +3,7 @@
 # For a wireless connection like XBee, the port is typically
 # /dev/ttyUSB# where # is a number such as 0, 1, 2, etc.
 
-port: /dev/ttyACM0
+port: /dev/ttyUSB0
 baud: 57600
 timeout: 0.1
 
@@ -54,10 +54,10 @@ sensors: {
   motor_current_left:   {pin: 4, type: CustomMotorCurrent, rate: 1},
   #ir_front_center:      {pin: 2, type: GP2D12, rate: 10},
   #sonar_front_center:   {pin: 5, type: Ping, rate: 10},
-  sonar_front_left:   {pin: 45, type: PointCloudPing, rate: 1, frame_id: /base_fl_sonar_link},
-  sonar_front_middle_left:   {pin: 47, type: PointCloudPing, rate: 1, frame_id: /base_fml_sonar_link},
-  sonar_front_center:   {pin: 49, type: PointCloudPing, rate: 1, frame_id: /base_fc_sonar_link},
-  sonar_front_middle_right:   {pin: 51, type: PointCloudPing, rate: 1, frame_id: /base_fmr_sonar_link},
-  sonar_front_right:   {pin: 53, type: PointCloudPing, rate: 1, frame_id: /base_fr_sonar_link},
+  #sonar_front_left:   {pin: 45, type: PointCloudPing, rate: 1, frame_id: /base_fl_sonar_link},
+  #sonar_front_middle_left:   {pin: 47, type: PointCloudPing, rate: 1, frame_id: /base_fml_sonar_link},
+  #sonar_front_center:   {pin: 49, type: PointCloudPing, rate: 1, frame_id: /base_fc_sonar_link},
+  #sonar_front_middle_right:   {pin: 51, type: PointCloudPing, rate: 1, frame_id: /base_fmr_sonar_link},
+  #sonar_front_right:   {pin: 53, type: PointCloudPing, rate: 1, frame_id: /base_fr_sonar_link},
   arduino_led:          {pin: 13, type: Digital, rate: 1, direction: output}
 }
